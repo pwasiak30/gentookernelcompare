@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentoo Kernel Watch — TUF F15 vs X202EP</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#f6f8fa; --bg3:#eef1f4; --border:#d8dee4;
+    --text:#1b1f24; --muted:#57606a; --accent:#a3620a; --accent-bg:#fff3d6; --accent-strong:#8a4b00;
+    --link:#0969da; --good:#116329; --good-bg:#dafbe1; --bad:#82071e; --bad-bg:#ffebe9;
+    --warn:#7d4e00; --warn-bg:#fff8c5;
+    --headerbg:#0b1320; --headertext:#f4f6f8;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --radius:6px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height:1.5; font-size:15px;
+  }
+  a{color:var(--link)}
+  header.top{
+    background:var(--headerbg); color:var(--headertext); padding:16px 20px; border-bottom:3px solid var(--accent);
+  }
+  header.top .inner{max-width:1150px; margin:0 auto; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+  header.top h1{margin:0; font-size:1.35rem; font-weight:700}
+  header.top .sub{color:#c3cad4; font-size:.85rem}
+  .wrap{max-width:1150px; margin:0 auto; padding:0 20px 70px}
+  .banner{
+    background:var(--accent-bg); border:1px solid #f0d9a6; border-left:4px solid var(--accent);
+    border-radius:var(--radius); padding:13px 16px; margin:18px 0 22px; font-size:.87rem; color:#4a3300;
+  }
+  .banner b{color:#2e2000}
+  .tabs{display:flex; gap:2px; margin-bottom:0; border-bottom:2px solid var(--border); flex-wrap:wrap; margin-top:6px}
+  .tab-btn{
+    background:var(--bg2); border:1px solid var(--border); border-bottom:none; color:var(--muted); font-size:.92rem; padding:9px 16px;
+    cursor:pointer; font-weight:600; font-family:inherit; border-radius:6px 6px 0 0; margin-bottom:-2px;
+  }
+  .tab-btn:hover{color:var(--text); background:var(--bg3)}
+  .tab-btn.active{color:var(--text); background:var(--bg); border-color:var(--border); border-bottom:2px solid var(--bg)}
+  .tab-panel{display:none; padding-top:20px}
+  .tab-panel.active{display:block}
+  .card{
+    background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 20px; margin-bottom:18px; box-shadow:0 1px 0 rgba(27,31,36,.03);
+  }
+  .card h2{margin-top:0; font-size:1.1rem; border-bottom:1px solid var(--border); padding-bottom:10px}
+  .card h3{font-size:.98rem; margin:0 0 10px}
+  .spec-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 24px}
+  @media(max-width:640px){.spec-grid{grid-template-columns:1fr}}
+  .spec-row{display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--bg3); font-size:.86rem}
+  .spec-row:last-child{border-bottom:none}
+  .spec-row .k{color:var(--muted)}
+  .spec-row .v{text-align:right; font-weight:600}
+  .note{font-size:.8rem; color:var(--muted); margin-top:10px; padding:10px 12px; background:var(--bg2); border:1px solid var(--border); border-radius:6px}
+  .kernel-select-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+  select{
+    background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px;
+    padding:8px 10px; font-size:.88rem; font-family:inherit; min-width:280px;
+  }
+  button{
+    background:var(--bg2); color:var(--text); border:1px solid var(--border); border-radius:6px;
+    padding:8px 14px; cursor:pointer; font-size:.85rem; font-family:inherit;
+  }
+  button:hover{border-color:var(--accent); color:var(--accent-strong)}
+  button.primary{background:var(--accent-strong); color:#fff; border-color:var(--accent-strong)}
+  button.primary:hover{background:#6e3a00; color:#fff}
+  .kernel-meta{font-size:.77rem; color:var(--muted); margin-top:6px}
+  .badge{
+    display:inline-block; font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 7px; border-radius:5px; margin-left:6px; vertical-align:middle; border:1px solid transparent;
+  }
+  .badge.lts{background:var(--good-bg); color:var(--good); border-color:#9fe0ae}
+  .badge.eol{background:var(--bad-bg); color:var(--bad); border-color:#f3b6b6}
+  .badge.now{background:var(--accent-bg); color:var(--accent-strong); border-color:#f0d9a6}
+  .badge.latest{background:#ddf1ff; color:#0757a3; border-color:#b6dcf7}
+  .component{border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin-bottom:12px; background:var(--bg2)}
+  .component h4{margin:0 0 6px; font-size:.93rem; display:flex; align-items:center; gap:8px}
+  .component .status{font-size:.85rem; margin-bottom:8px}
+  .component .verify{font-size:.75rem; color:var(--muted); font-family:var(--mono); background:var(--bg3); border:1px solid var(--border); padding:6px 9px; border-radius:6px; margin-top:6px; display:inline-block}
+  .diffgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+  @media(max-width:640px){.diffgrid{grid-template-columns:1fr}}
+  .diffbox{background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:.77rem}
+  .diffbox .lbl{color:var(--muted); font-weight:600; margin-bottom:4px; display:block}
+  .diffbox ul{margin:4px 0 0; padding-left:16px}
+  .diffbox li{margin-bottom:4px}
+  .diffbox .ok{color:var(--good)}
+  footer{max-width:1150px; margin:0 auto; padding:10px 20px 50px; color:var(--muted); font-size:.78rem}
+  .status-line{font-size:.78rem; color:var(--muted); margin-top:8px}
+  code, pre{font-family:var(--mono)}
+  code{background:var(--bg3); padding:1px 5px; border-radius:4px; font-size:.85em}
+  pre{
+    background:#0d1117; color:#c9d1d9; padding:14px 16px; border-radius:8px; overflow-x:auto;
+    font-size:.78rem; line-height:1.55; margin:8px 0;
+  }
+  pre .c{color:#8b949e}
+  table.cfg{width:100%; border-collapse:collapse; font-size:.83rem; margin-bottom:6px}
+  table.cfg th{text-align:left; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); padding:6px 8px; font-size:.75rem; text-transform:uppercase; letter-spacing:.02em}
+  table.cfg td{padding:7px 8px; border-bottom:1px solid var(--bg3); vertical-align:top}
+  table.cfg td.opt{font-family:var(--mono); white-space:nowrap; color:var(--accent-strong); font-weight:600}
+  .subtab-row{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px}
+  .subtab-btn{
+    background:var(--bg2); border:1px solid var(--border); color:var(--muted); font-size:.82rem; padding:7px 13px;
+    border-radius:16px; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .subtab-btn.active{background:var(--accent-strong); color:#fff; border-color:var(--accent-strong)}
+  .subtab-panel{display:none}
+  .subtab-panel.active{display:block}
+  .calc-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; align-items:end; margin-bottom:12px}
+  @media(max-width:700px){.calc-grid{grid-template-columns:1fr 1fr}}
+  .calc-grid label{display:block; font-size:.75rem; color:var(--muted); margin-bottom:3px}
+  .calc-grid input{width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:.88rem}
+  .result-box{background:var(--accent-bg); border:1px solid #f0d9a6; border-radius:6px; padding:12px 14px; margin-top:10px}
+  .result-box .big{font-family:var(--mono); font-size:1.05rem; font-weight:700; color:var(--accent-strong)}
+  .compare-table{width:100%; border-collapse:collapse; font-size:.85rem}
+  .compare-table th{text-align:left; padding:8px; border-bottom:2px solid var(--border); background:var(--bg2)}
+  .compare-table td{padding:8px; border-bottom:1px solid var(--bg3); vertical-align:top}
+  .pill{display:inline-block; padding:2px 8px; border-radius:12px; font-size:.72rem; font-weight:700}
+  .pill.yes{background:var(--good-bg); color:var(--good)}
+  .pill.no{background:var(--bad-bg); color:var(--bad)}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:800px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="inner">
+    <h1>🐧 Gentoo Kernel Watch</h1>
+    <span class="sub">TUF Gaming F15 vs VivoBook X202EP — wsparcie jąder, konfiguracja, kompilacja</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="banner">
+    <b>Jak czytać tę stronę:</b> lista jąder odświeża się automatycznie z publicznych danych kernel.org / endoflife.date
+    i zawsze obejmuje ostatnie dwa lata licząc od dzisiaj. Sekcje o wsparciu sprzętu, rekomendowanym <code>.config</code> i optymalizacji kompilacji
+    to <b>baza wiedzy referencyjnej</b> (dokumentacja jądra, konwencje Gentoo, wiedza społeczności) — nie wynik automatycznego testu
+    na Twoim fizycznym sprzęcie. Przy każdej sekcji znajdziesz komendę do zweryfikowania stanu faktycznego na własnym Gentoo.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tuf">💻 Laptop 1 — ASUS TUF Gaming F15</button>
+    <button class="tab-btn" data-tab="x202ep">💻 Laptop 2 — ASUS VivoBook X202EP</button>
+    <button class="tab-btn" data-tab="update">🔄 Ściągawka: aktualizacja systemu</button>
+  </div>
+
+  <div id="tab-tuf" class="tab-panel active"></div>
+  <div id="tab-x202ep" class="tab-panel"></div>
+  <div id="tab-update" class="tab-panel"></div>
+
+</div>
+
+<footer>
+  Dane o wydaniach jąder: <a href="https://www.kernel.org/" target="_blank">kernel.org</a> /
+  <a href="https://endoflife.date/linux" target="_blank">endoflife.date</a> (pobierane na żywo przy każdym otwarciu strony).
+  Nazwy opcji <code>CONFIG_*</code> zweryfikowane względem Linux Kernel Driver Database i dokumentacji jądra — mimo to zawsze zweryfikuj
+  je w <code>make menuconfig</code> na docelowej wersji, bo pojedyncze nazwy symboli potrafią się zmieniać między wydaniami.
+  Ostatnia aktualizacja treści strony: 2026-08-13.
+</footer>
+
+<script>
+/* ======================= DANE SPRZĘTOWE ======================= */
+
+const LAPTOPS = {
+tuf: {
+  id:'tuf',
+  name:'ASUS TUF Gaming F15 (FX506HC-HN004)',
+  intro:'Intel Core i5-11400H (Tiger Lake-H) + NVIDIA GeForce RTX 3050, kupiony jako "nowoczesny" gamingowy sprzęt — sensowny test tego, jak szybko Linux nadąża za świeższą platformą.',
+  specGroups:[
+    {group:'Procesor / platforma', rows:[
+      ['Procesor','Intel Core i5-11400H (6 rdzeni / 12 wątków, 2.70–4.50 GHz, 12 MB cache, Tiger Lake-H)'],
+      ['Chipset','Intel HM570'],
+      ['Pamięć RAM','16 GB DDR4 3200 MHz (2 sloty, oba zajęte, max. 32 GB)'],
+    ]},
+    {group:'Grafika', rows:[
+      ['Karta dedykowana','NVIDIA GeForce RTX 3050 4 GB GDDR6 (Ampere, TGP 60 W / max 75 W)'],
+      ['Grafika zintegrowana','Intel UHD Graphics (Tiger Lake, architektura Xe)'],
+    ]},
+    {group:'Ekran', rows:[
+      ['Przekątna / rozdzielczość','15,6" Full HD 1920×1080, matowy IPS'],
+      ['Odświeżanie / jasność','144 Hz, 250 cd/m²'],
+    ]},
+    {group:'Pamięć masowa', rows:[
+      ['Dysk','512 GB SSD M.2 PCIe NVMe'],
+      ['Rozbudowa','2 gniazda M.2 PCIe (możliwość dołożenia drugiego dysku)'],
+    ]},
+    {group:'Łączność', rows:[
+      ['LAN','1 Gb/s (Realtek, rodzina RTL8111/8168 — typowa dla tej platformy)'],
+      ['Wi-Fi','Wi-Fi 6 — MediaTek MT7921 (potwierdzone dla FX506HC/HCB)'],
+      ['Bluetooth','5.2 (moduł zintegrowany z kartą MT7921)'],
+      ['Porty','USB 3.2 Gen1 ×3, USB4 Typu-C (Thunderbolt 4) ×1, HDMI 2.0b, RJ-45, combo audio, DC-in'],
+    ]},
+    {group:'Pozostałe', rows:[
+      ['Klawiatura','Podświetlana, RGB (wielokolorowa)'],
+      ['Zabezpieczenia','TPM, Kensington Lock'],
+      ['Bateria','Li-Ion 3-komorowa, 4240 mAh'],
+      ['Zasilacz','20 V / 9 A, 180 W'],
+      ['Waga / wymiary','2,08 kg, 360 × 260 × 26,2 mm'],
+      ['System fabryczny','Windows 11 Home (docelowo: Gentoo Linux)'],
+    ]},
+  ],
+  specNote:'Specyfikacja przepisana z karty produktu wgranej przez Ciebie (kod producenta FX506HC-HN004, kod produktu 733439).',
+  dmi:'ASUS TUF Gaming F15 FX506HC',
+  compile:{arch:'tigerlake', gccMin:'GCC ≥ 10', cores:6, threads:12, ramGB:16},
+  components:[
+    {
+      id:'cpu-igpu', name:'CPU + grafika zintegrowana (i915 / Xe, Tiger Lake)',
+      baseline:'Tiger Lake ma dojrzałe wsparcie w sterowniku i915 od jądra ok. 5.6–5.9 (2020) — to już bardzo stara i stabilna gałąź.',
+      verify:'lspci -k | grep -A3 VGA   /   dmesg | grep -i i915',
+      milestones:[
+        {version:'6.2', text:'Kolejne poprawki PSR2 (Panel Self Refresh) i zarządzania taktowaniem (RPS) w i915, korzystne dla laptopowych iGPU Tiger Lake.', impact:'drobna'},
+        {version:'6.8', text:'Wejście do jądra nowego sterownika drm/xe jako alternatywy dla i915. Dla Tiger Lake i915 pozostaje sterownikiem domyślnym/zalecanym — Xe celuje głównie w nowsze generacje (Meteor Lake i późniejsze).', impact:'drobna'},
+        {version:'6.11', text:'Dalsza stabilizacja Xe oraz porządki w i915; praktycznie brak zmian funkcjonalnych odczuwalnych na Tiger Lake.', impact:'kosmetyczna'},
+        {version:'6.15', text:'Kolejne poprawki zarządzania energią i PSR w i915 — drobne usprawnienia czasu pracy na baterii.', impact:'zauwazalna'},
+      ],
+    },
+    {
+      id:'dgpu', name:'Karta NVIDIA GeForce RTX 3050 (Ampere, Optimus)',
+      baseline:'Jądro dostarcza wyłącznie ogólną infrastrukturę DRM/PCI/PRIME. Pełne wsparcie 3D wymaga sterownika własnościowego (x11-drivers/nvidia-drivers w Portage) w wersji obsługującej Ampere (serie ≥470/5xx/5xx-open).',
+      verify:'nvidia-smi   /   lspci -k | grep -A3 "3D controller"',
+      milestones:[
+        {version:'6.6', text:'Nouveau (open-source) zaczyna zyskiwać wczesną obsługę firmware GSP i podstawy pod NVK (Vulkan w Mesa) dla nowszych GPU NVIDIA — nadal eksperymentalne, bez sensownego reclockingu/wydajności do grania.', impact:'drobna'},
+        {version:'6.10', text:'Kolejne poprawki PRIME/Optimus (przełączanie iGPU↔dGPU) w DRM — istotne dla poprawnego działania supergfxctl/optimus-manager na laptopach hybrydowych.', impact:'istotna'},
+        {version:'6.14', text:'Dalszy rozwój sterownika nouveau/NVK, wciąż jako opcja drugorzędna wobec sterownika własnościowego dla realnej wydajności gamingowej.', impact:'kosmetyczna'},
+      ],
+    },
+    {
+      id:'audio', name:'Dźwięk (snd-hda-intel)',
+      baseline:'Standardowy sterownik HD Audio jest dojrzały od dawna. Tiger Lake-H ma pełne wsparcie kodeka od premiery platformy.',
+      verify:'lspci -k | grep -A3 Audio   /   aplay -l',
+      milestones:[
+        {version:'6.9', text:'Poprawki quirków audio dla laptopów z podwójnym mikrofonem (typowa konfiguracja na tej platformie).', impact:'zauwazalna'},
+      ],
+    },
+    {
+      id:'power-cpufreq', name:'Zarządzanie energią CPU (intel_pstate)',
+      baseline:'intel_pstate w trybie HWP jest domyślnym, dojrzałym sterownikiem częstotliwości dla Tiger Lake od premiery platformy.',
+      verify:'cpupower frequency-info   /   cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver',
+      milestones:[
+        {version:'6.13', text:'Kolejne dostrojenie EPP (Energy Performance Preference) w intel_pstate, powiązane z platform_profile — realny wpływ na czas pracy na baterii vs wydajność.', impact:'zauwazalna'},
+        {version:'6.17', text:'Dalsze poprawki balansu wydajność/energia w intel_pstate dla nowszych generacji, częściowo dotyczące też Tiger Lake.', impact:'drobna'},
+      ],
+    },
+    {
+      id:'wifi', name:'Wi-Fi — MediaTek MT7921 (mt7921e)',
+      baseline:'Sterownik mt7921e trafił do głównej gałęzi jądra w wersji 5.16 (styczeń 2022) — od tego czasu dojrzały i stabilny.',
+      verify:'lspci -k | grep -A3 Network   /   dmesg | grep -i mt7921',
+      milestones:[
+        {version:'6.8', text:'Poprawki stabilności łącza i zarządzania energią (ASPM) dla mt7921e, zgłaszane m.in. jako naprawa losowych rozłączeń na laptopach.', impact:'istotna'},
+        {version:'6.12', text:'Aktualizacje firmware/driver poprawiające roaming i przełączanie kanałów przy Wi-Fi 6 (160 MHz).', impact:'zauwazalna'},
+        {version:'6.17', text:'Dalsze drobne poprawki stabilności uśpienia karty (S3/S0ix) dla rodziny MT792x.', impact:'drobna'},
+      ],
+    },
+    {
+      id:'lan', name:'LAN 1 Gb/s (Realtek, r8169)',
+      baseline:'Sterownik r8169 jest dojrzały od wielu lat. W ostatnich dwóch latach praktycznie brak zmian funkcjonalnych — jedynie ogólne porządki w kodzie.',
+      verify:'lspci -k | grep -A3 Ethernet',
+      milestones:[],
+    },
+    {
+      id:'platform', name:'Platforma ASUS — RGB klawiatury, profile wydajności, próg ładowania baterii (asus-wmi)',
+      baseline:'Podstawowa jasność klawiatury i interfejs platform_profile (ciche/zbalansowane/turbo) są wspierane w jądrze od ok. 5.11–5.17 przez sterownik asus-wmi/asus-nb-wmi.',
+      verify:'cat /sys/class/power_supply/BAT0/charge_control_end_threshold   /   ls /sys/firmware/acpi/platform_profile*',
+      milestones:[
+        {version:'6.9', text:'Rozszerzenia asus-wmi o dokładniejsze wykrywanie modeli TUF/ROG i lepszą obsługę progu ładowania baterii.', impact:'zauwazalna'},
+        {version:'6.13', text:'Kolejne poprawki fn-lock i hwmon (odczyt temperatur/obrotów wentylatorów) w asus-wmi.', impact:'drobna'},
+        {version:'6.16', text:'Dalsze rozszerzenia platform_profile o dodatkowe tryby specyficzne dla nowszych modeli ROG/TUF.', impact:'drobna'},
+      ],
+      note:'Pełna kontrola efektów RGB klawiatury i krzywych wentylatorów zwykle wymaga dodatkowo narzędzi spoza jądra głównego — projektu społeczności asus-linux: sys-power/asusctl i sys-power/supergfxctl (dostępne przez overlay w Gentoo). Sam kernel daje tylko bazowe API, na którym te narzędzia się opierają.',
+    },
+    {
+      id:'storage', name:'Dysk NVMe (512 GB SSD PCIe)',
+      baseline:'Standard NVMe jest dojrzały i w pełni obsługiwany od dawna (jądro ≥4.x). Brak istotnych ograniczeń na żadnym z jąder z ostatnich dwóch lat.',
+      verify:'nvme list   /   lspci -k | grep -A3 "Non-Volatile"',
+      milestones:[
+        {version:'6.11', text:'Drobne poprawki wydajności planisty I/O (io_uring) korzystne przy dużym obciążeniu losowym na NVMe.', impact:'drobna'},
+      ],
+    },
+    {
+      id:'usb4', name:'USB4 / Thunderbolt 4 (port Typu-C)',
+      baseline:'Wsparcie USB4/TB4 w sterowniku "thunderbolt" (Kconfig: CONFIG_USB4) stale dojrzewa — hot-plug i tunelowanie PCIe/DisplayPort działają, ale poza ekosystemem Intel NUC/Dell bywa, że wymaga ręcznej autoryzacji urządzeń (narzędzie boltctl, pakiet sys-apps/bolt).',
+      verify:'boltctl list   /   dmesg | grep -i thunderbolt',
+      milestones:[
+        {version:'6.9', text:'Poprawki stabilności tunelowania DisplayPort przez USB4 na laptopach z hybrydową grafiką (Optimus).', impact:'istotna'},
+        {version:'6.14', text:'Dalsze poprawki hot-plug i wykrywania dokrów USB4 podłączanych/odłączanych w locie.', impact:'zauwazalna'},
+      ],
+    },
+  ],
+  kernelConfig:{
+    groups:[
+      {title:'Grafika (Intel iGPU + NVIDIA Optimus)', options:[
+        {opt:'CONFIG_DRM_I915', desc:'Sterownik Intel iGPU (Tiger Lake) — podstawowy, zalecany sterownik dla UHD Graphics na tej platformie.'},
+        {opt:'CONFIG_DRM_I915_GVT', desc:'Opcjonalnie — wirtualizacja GPU, zwykle niepotrzebne na desktopowym/laptopowym użytku.'},
+        {opt:'CONFIG_DRM_XE', desc:'Opcjonalny, nowszy sterownik Intel — dla Tiger Lake nadal drugorzędny wobec i915, można zostawić jako moduł.'},
+        {opt:'CONFIG_DRM_NOUVEAU', desc:'Otwarty sterownik NVIDIA — włącz jako moduł, jeśli chcesz mieć zapasową opcję bez sterownika własnościowego (np. do trybu ratunkowego).'},
+        {opt:'CONFIG_VGA_SWITCHEROO', desc:'Przełączanie GPU dla laptopów hybrydowych — wymagane dla poprawnego działania PRIME offloading / Optimus.'},
+        {opt:'CONFIG_DRM_KMS_HELPER, CONFIG_FB', desc:'Wspólna infrastruktura KMS/framebuffer wymagana przez oba sterowniki graficzne.'},
+      ]},
+      {title:'Platforma ASUS / WMI', options:[
+        {opt:'CONFIG_ASUS_WMI', desc:'Bazowe API WMI ASUS — jasność klawiatury, czujniki, próg ładowania baterii.'},
+        {opt:'CONFIG_ASUS_NB_WMI', desc:'Rozszerzenia specyficzne dla laptopów ASUS (klawisze Fn, dodatkowe LEDy).'},
+        {opt:'CONFIG_ACPI_PLATFORM_PROFILE', desc:'Profile wydajności (cichy/zbalansowany/turbo) — używane przez asusctl / power-profiles-daemon.'},
+        {opt:'CONFIG_HWMON, CONFIG_SENSORS_ACPI_POWER', desc:'Odczyt temperatur i obrotów wentylatorów przez hwmon.'},
+        {opt:'CONFIG_LEDS_CLASS, CONFIG_NEW_LEDS', desc:'Sterowanie podświetleniem/LEDami klawiatury RGB (bazowe API, efekty dalej wymagają asusctl).'},
+      ]},
+      {title:'Sieć', options:[
+        {opt:'CONFIG_MT7921E', desc:'Sterownik karty Wi-Fi 6 MediaTek MT7921 (PCIe).'},
+        {opt:'CONFIG_MT76_CORE, CONFIG_MT76_CONNAC_LIB', desc:'Wspólne biblioteki rodziny MediaTek MT76 — zależności wymagane przez mt7921e.'},
+        {opt:'CONFIG_R8169', desc:'Sterownik karty LAN Realtek 1 Gb/s.'},
+        {opt:'CONFIG_BT, CONFIG_BT_HCIBTUSB', desc:'Bluetooth 5.2 (moduł zintegrowany z kartą MT7921, po USB).'},
+      ]},
+      {title:'Dysk i magistrale', options:[
+        {opt:'CONFIG_BLK_DEV_NVME', desc:'Obsługa dysku SSD M.2 PCIe NVMe.'},
+        {opt:'CONFIG_USB4', desc:'USB4 / Thunderbolt 4 (port Typu-C) — nazwa symbolu Kconfig od czasu ujednolicenia sterownika thunderbolt.'},
+        {opt:'CONFIG_PCIEASPM', desc:'Zarządzanie energią PCIe — istotne dla realnego czasu pracy na baterii.'},
+      ]},
+      {title:'Dźwięk i bezpieczeństwo', options:[
+        {opt:'CONFIG_SND_HDA_INTEL', desc:'Karta dźwiękowa HD Audio (kodek zintegrowany).'},
+        {opt:'CONFIG_TCG_TPM, CONFIG_TCG_CRB', desc:'Moduł TPM — wymagany też, jeśli kiedyś zechcesz Secure Boot.'},
+      ]},
+    ],
+    packageUse:[
+      ['x11-drivers/nvidia-drivers', 'X ${jeśli używasz X11} kernel-open ${dla nowszych GPU}', 'Własnościowy sterownik NVIDIA obsługujący Ampere (RTX 3050). Sprawdź w Portage, która gałąź (np. 5xx) wspiera Twoją kartę i jest kompatybilna z wybranym jądrem, zanim je zaktualizujesz.'],
+      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) używane tylko przejściowo do wygenerowania konfiguracji dla gentoo-kernel, nie jako główne jądro.'],
+      ['sys-power/asusctl', '', 'Sterowanie RGB klawiatury, profilami wydajności i progiem ładowania baterii — narzędzie społeczności asus-linux (spoza głównego drzewa Portage, wymaga overlay np. GURU).'],
+      ['sys-power/supergfxctl', '', 'Przełączanie trybów graficznych (hybrydowy / dGPU / tylko iGPU) na laptopach z Optimus.'],
+      ['app-laptop/tlp', 'NetworkManager', 'Zarządzanie energią — sensowny dodatek do intel_pstate/platform_profile dla dłuższej pracy na baterii.'],
+    ],
+  },
+},
+
+x202ep: {
+  id:'x202ep',
+  name:'ASUS VivoBook X202EP',
+  intro:'Budżetowy 11,6" ultrabook z ok. 2012–2013 roku (Sandy Bridge). Dobry kontrapunkt dla TUF-a: sprzęt na tyle stary, że jego wsparcie w jądrze jest od dawna w pełni ustabilizowane.',
+  specGroups:[
+    {group:'Procesor / platforma', rows:[
+      ['Procesor','Intel Pentium 987 (Sandy Bridge, 2 rdzenie / 2 wątki, 1,5 GHz)'],
+      ['Chipset','Intel HM76 Express'],
+      ['Pamięć RAM','4 GB DDR3 (zwykle 1 slot SO-DIMM, część wlutowana na płycie)'],
+    ]},
+    {group:'Grafika', rows:[
+      ['Grafika','Intel HD Graphics 3000 (zintegrowana w procesorze, brak karty dedykowanej)'],
+    ]},
+    {group:'Ekran', rows:[
+      ['Przekątna / rozdzielczość','11,6" HD 1366×768, błyszczący'],
+      ['Dotyk','Ekran dotykowy pojemnościowy, 10-punktowy'],
+    ]},
+    {group:'Pamięć masowa', rows:[
+      ['Dysk','500 GB HDD 5400 obr./min, SATA'],
+    ]},
+    {group:'Łączność', rows:[
+      ['Wi-Fi','802.11 b/g/n (Atheros AR9485 lub Realtek RTL8188CE — zależnie od wariantu produkcyjnego)'],
+      ['Bluetooth','4.0'],
+      ['LAN','w niektórych wariantach 10/100 Fast Ethernet (Realtek RTL8101E) — nie każda wersja SKU ma port RJ-45'],
+      ['Porty','USB 3.0 ×1, USB 2.0 ×2, HDMI, czytnik kart SD, combo audio'],
+    ]},
+    {group:'Pozostałe', rows:[
+      ['Klawiatura','Chiclet, bez podświetlenia'],
+      ['Bateria','Li-Ion 2-komorowa, ok. 24 Wh'],
+      ['Zasilacz','33 W'],
+      ['Waga','ok. 1,42 kg'],
+      ['System fabryczny','Windows 8 (docelowo: Gentoo Linux)'],
+    ]},
+  ],
+  specNote:'To starszy, budżetowy model sprzedawany w wielu wariantach CPU/Wi-Fi (rodzina VivoBook X201E/X202E). Powyższe to najbardziej typowa/dostępna konfiguracja dla oznaczenia X202EP na podstawie ofert i recenzji — nie mam zdjęcia Twojej karty produktu dla tego modelu. Warto zweryfikować własny egzemplarz poleceniami niżej i w razie różnic po prostu podmienić dane w pliku.',
+  dmi:'ASUS X202EP / X202E / VivoBook X201E',
+  compile:{arch:'sandybridge', gccMin:'GCC ≥ 4.9', cores:2, threads:2, ramGB:4},
+  components:[
+    {
+      id:'cpu-igpu', name:'CPU + Intel HD Graphics 3000 (Sandy Bridge, i915)',
+      baseline:'Pełne, dojrzałe wsparcie od jądra ok. 3.0 (2011). Od ponad dekady brak jakichkolwiek zmian funkcjonalnych — tylko ogólne, niezwiązane ze sprzętem poprawki bezpieczeństwa i optymalizacje wspólne dla całej rodziny i915.',
+      verify:'lspci -k | grep -A3 VGA   /   glxinfo | grep "OpenGL renderer"',
+      milestones:[],
+    },
+    {
+      id:'power-cpufreq', name:'Zarządzanie energią CPU (intel_pstate)',
+      baseline:'Sandy Bridge (2011) jest wspierany przez intel_pstate od jego wczesnych wersji — dojrzały, stabilny, bez zmian funkcjonalnych w ostatnich dwóch latach. Na starszych CPU czasem lepiej sprawdza się klasyczny cpufreq/ondemand — warto porównać.',
+      verify:'cpupower frequency-info   /   cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver',
+      milestones:[],
+    },
+    {
+      id:'audio', name:'Dźwięk (snd-hda-intel)',
+      baseline:'Standardowy sterownik HD Audio, dojrzały od bardzo dawna dla tej generacji chipsetów. Brak zmian w ostatnich dwóch latach.',
+      verify:'lspci -k | grep -A3 Audio   /   aplay -l',
+      milestones:[],
+    },
+    {
+      id:'wifi', name:'Wi-Fi 802.11 b/g/n (Atheros ath9k lub Realtek rtl8192ce)',
+      baseline:'Oba możliwe chipsety mają sterowniki dojrzałe od dawna (ath9k / rtl8192ce). W ostatnich dwóch latach brak zmian funkcjonalnych — tylko ogólne poprawki w podsystemie mac80211.',
+      verify:'lspci -k | grep -A3 Network   /   iw dev',
+      milestones:[],
+    },
+    {
+      id:'lan', name:'Ethernet 10/100 (Realtek RTL8101E, jeśli obecny w danym wariancie)',
+      baseline:'Sterownik r8169 obsługuje ten kontroler od bardzo dawna. Brak zmian istotnych dla tego konkretnego chipsetu w ostatnich dwóch latach.',
+      verify:'lspci -k | grep -A3 Ethernet',
+      milestones:[],
+    },
+    {
+      id:'touch', name:'Ekran dotykowy (kontroler HID multitouch, USB)',
+      baseline:'Standardowy, generyczny sterownik hid-multitouch obsługuje ten typ panelu od dawna — dojrzały i stabilny.',
+      verify:'libinput list-devices   /   dmesg | grep -i multitouch',
+      milestones:[],
+    },
+    {
+      id:'storage', name:'Dysk HDD (SATA/AHCI)',
+      baseline:'Standard AHCI/SATA jest dojrzały od bardzo dawna. Brak istotnych zmian na żadnym z jąder z ostatnich dwóch lat.',
+      verify:'lspci -k | grep -A3 SATA   /   smartctl -a /dev/sda',
+      milestones:[],
+    },
+    {
+      id:'bt', name:'Bluetooth 4.0',
+      baseline:'Standardowy stos BlueZ + sterownik btusb obsługuje ten moduł od dawna — dojrzały, bez zmian funkcjonalnych w ostatnich dwóch latach.',
+      verify:'bluetoothctl show',
+      milestones:[],
+    },
+  ],
+  kernelConfig:{
+    groups:[
+      {title:'Grafika', options:[
+        {opt:'CONFIG_DRM_I915', desc:'Sterownik Intel HD Graphics 3000 (Sandy Bridge) — jedyna karta w tym laptopie, brak dGPU.'},
+        {opt:'CONFIG_DRM_KMS_HELPER, CONFIG_FB', desc:'Wspólna infrastruktura KMS/framebuffer wymagana przez i915.'},
+        {opt:'CONFIG_BACKLIGHT_CLASS_DEVICE', desc:'Sterowanie jasnością matrycy.'},
+      ]},
+      {title:'Sieć', options:[
+        {opt:'CONFIG_ATH9K (lub CONFIG_RTL8192CE)', desc:'Sterownik karty Wi-Fi — który dokładnie zależy od Twojego egzemplarza (zweryfikuj lspci -k).'},
+        {opt:'CONFIG_R8169', desc:'Sterownik ewentualnej karty LAN 10/100 Realtek — tylko jeśli Twój wariant SKU ma port RJ-45.'},
+        {opt:'CONFIG_BT, CONFIG_BT_HCIBTUSB', desc:'Bluetooth 4.0.'},
+      ]},
+      {title:'Dysk, wejście, zasilanie', options:[
+        {opt:'CONFIG_ATA, CONFIG_SATA_AHCI', desc:'Obsługa dysku HDD po SATA/AHCI.'},
+        {opt:'CONFIG_HID_MULTITOUCH', desc:'Ekran dotykowy pojemnościowy (10-punktowy).'},
+        {opt:'CONFIG_SUSPEND, CONFIG_ACPI_SLEEP', desc:'Uśpienie S3 — na starszym sprzęcie zwykle działa bardzo dobrze i realnie oszczędza baterię.'},
+        {opt:'CONFIG_CPU_FREQ_GOV_ONDEMAND, CONFIG_CPU_FREQ_GOV_POWERSAVE', desc:'Warto mieć oba governory dostępne do porównania z intel_pstate na tak starym, słabym CPU.'},
+      ]},
+      {title:'Dźwięk', options:[
+        {opt:'CONFIG_SND_HDA_INTEL', desc:'Karta dźwiękowa HD Audio.'},
+      ]},
+    ],
+    packageUse:[
+      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) używane tylko przejściowo do wygenerowania konfiguracji; na tym CPU rozważ uważnie czas kompilacji, gentoo-kernel-bin bywa praktyczniejszy jako jedyne jądro.'],
+      ['sys-power/tlp', '', 'Zarządzanie energią — na starej platformie z małą baterią (24 Wh) realnie wydłuża czas pracy.'],
+      ['x11-drivers/xf86-video-intel (opcjonalnie)', '', 'Starszy, dedykowany sterownik X11 dla Intela — na tak starym GPU bywa czasem stabilniejszy niż domyślny modesetting, warto przetestować oba.'],
+    ],
+  },
+},
+};
+
+/* ======================= DANE O JĄDRACH (fallback offline) ======================= */
+const FALLBACK_KERNELS = [
+{"cycle":"7.1","releaseDate":"2026-06-14","eol":false,"latest":"7.1.8","latestReleaseDate":"2026-08-09","lts":false},
+{"cycle":"7.0","releaseDate":"2026-04-12","eol":"2026-06-27","latest":"7.0.14","latestReleaseDate":"2026-06-27","lts":false},
+{"cycle":"6.19","releaseDate":"2026-02-08","eol":"2026-04-22","latest":"6.19.14","latestReleaseDate":"2026-04-22","lts":false},
+{"cycle":"6.18","releaseDate":"2025-11-30","eol":"2028-12-31","latest":"6.18.44","latestReleaseDate":"2026-08-09","lts":true},
+{"cycle":"6.17","releaseDate":"2025-09-28","eol":"2025-12-18","latest":"6.17.13","latestReleaseDate":"2025-12-18","lts":false},
+{"cycle":"6.16","releaseDate":"2025-07-27","eol":"2025-10-12","latest":"6.16.12","latestReleaseDate":"2025-10-12","lts":false},
+{"cycle":"6.15","releaseDate":"2025-05-25","eol":"2025-08-20","latest":"6.15.11","latestReleaseDate":"2025-08-20","lts":false},
+{"cycle":"6.14","releaseDate":"2025-03-24","eol":"2025-06-10","latest":"6.14.11","latestReleaseDate":"2025-06-10","lts":false},
+{"cycle":"6.13","releaseDate":"2025-01-19","eol":"2025-04-20","latest":"6.13.12","latestReleaseDate":"2025-04-20","lts":false},
+{"cycle":"6.12","releaseDate":"2024-11-17","eol":"2028-12-31","latest":"6.12.103","latestReleaseDate":"2026-08-09","lts":true},
+{"cycle":"6.11","releaseDate":"2024-09-15","eol":"2024-12-05","latest":"6.11.11","latestReleaseDate":"2024-12-05","lts":false},
+{"cycle":"6.10","releaseDate":"2024-07-14","eol":"2024-10-10","latest":"6.10.14","latestReleaseDate":"2024-10-10","lts":false},
+{"cycle":"6.9","releaseDate":"2024-05-12","eol":"2024-07-27","latest":"6.9.12","latestReleaseDate":"2024-07-27","lts":false},
+{"cycle":"6.8","releaseDate":"2024-03-10","eol":"2024-05-30","latest":"6.8.12","latestReleaseDate":"2024-05-30","lts":false},
+{"cycle":"6.7","releaseDate":"2024-01-07","eol":"2024-04-03","latest":"6.7.12","latestReleaseDate":"2024-04-03","lts":false},
+{"cycle":"6.6","releaseDate":"2023-10-30","eol":"2027-12-31","latest":"6.6.151","latestReleaseDate":"2026-08-09","lts":true}
+];
+const FALLBACK_SNAPSHOT_DATE = '2026-08-13';
+
+/* ======================= SKALA WPŁYWU ZMIAN (zamiast zmyślonych procentów) ======================= */
+/* Świadoma decyzja: nikt nie publikuje pomiarów "+X% wydajności" per komponent, per wersja jądra,
+   dla akurat i5-11400H+RTX3050 czy Pentium 987 — takie liczby musiałyby być zmyślone. Zamiast tego
+   każda zmiana ma jakościową ocenę wpływu, a przy porównywarkach dorzucamy realny, ale ogólny
+   (nie sprzętowo-specyficzny) punkt odniesienia z publikowanych testów Phoronix. */
+const IMPACT_LEVELS = {
+  kosmetyczna:  {label:'kosmetyczna',  weight:1, color:'#57606a', bg:'#eef1f4'},
+  drobna:       {label:'drobna',       weight:2, color:'#0757a3', bg:'#ddf1ff'},
+  zauwazalna:   {label:'zauważalna',   weight:3, color:'#7d4e00', bg:'#fff8c5'},
+  istotna:      {label:'istotna',      weight:4, color:'#a3620a', bg:'#fff3d6'},
+  przelomowa:   {label:'przełomowa',   weight:5, color:'#82071e', bg:'#ffebe9'},
+};
+function impactBadge(level){
+  const im = IMPACT_LEVELS[level] || IMPACT_LEVELS.drobna;
+  return '<span class="badge" style="background:'+im.bg+';color:'+im.color+';border-color:'+im.color+'22">'+im.label+'</span>';
+}
+function impactSummary(diffs){
+  if(!diffs.length) return '';
+  const counts = {};
+  diffs.forEach(d=>{ const lvl=d.impact||'drobna'; counts[lvl]=(counts[lvl]||0)+1; });
+  const maxWeight = Math.max(...diffs.map(d=>(IMPACT_LEVELS[d.impact||'drobna']||IMPACT_LEVELS.drobna).weight));
+  const top = Object.keys(IMPACT_LEVELS).find(k=>IMPACT_LEVELS[k].weight===maxWeight);
+  const parts = Object.entries(counts).sort((a,b)=>(IMPACT_LEVELS[b[0]]?.weight||0)-(IMPACT_LEVELS[a[0]]?.weight||0))
+    .map(([lvl,n])=>n+'× '+IMPACT_LEVELS[lvl].label);
+  return '<div style="margin-top:6px;font-size:.76rem">Najwyższy poziom w tym przedziale: '+impactBadge(top)+' &nbsp;('+parts.join(', ')+')</div>';
+}
+
+/* ======================= LOGIKA JĄDER ======================= */
+
+let liveKernels = null;
+let usingFallback = false;
+let fetchTimestamp = null;
+
+function isKernelEol(k){
+  if(k.eol===false || k.eol===undefined || k.eol===null) return false;
+  if(k.eol===true) return true;
+  const d = new Date(k.eol);
+  if(isNaN(d.getTime())) return false;
+  return d <= new Date();
+}
+
+function cmpVer(a,b){
+  const pa=String(a).split('.').map(n=>parseInt(n,10));
+  const pb=String(b).split('.').map(n=>parseInt(n,10));
+  const len=Math.max(pa.length,pb.length);
+  for(let i=0;i<len;i++){
+    const x=pa[i]||0, y=pb[i]||0;
+    if(x!==y) return x-y;
+  }
+  return 0;
+}
+
+function twoYearsAgo(){
+  const d=new Date();
+  d.setFullYear(d.getFullYear()-2);
+  return d;
+}
+
+function fetchWithTimeout(url, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {cache:'no-store', signal:ctrl.signal}).finally(()=>clearTimeout(t));
+}
+
+async function loadKernels(){
+  try{
+    const res = await fetchWithTimeout('https://endoflife.date/api/v1/products/linux/', 7000);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    const releases = (json.result && json.result.releases) || [];
+    if(!releases.length) throw new Error('brak releases w odpowiedzi');
+    liveKernels = releases.map(r=>({
+      cycle: r.name,
+      releaseDate: r.releaseDate,
+      eol: r.isEol,
+      lts: !!r.isLts,
+      latest: (r.latest && r.latest.name) || r.name,
+      latestReleaseDate: (r.latest && r.latest.date) || r.releaseDate,
+    }));
+    usingFallback = false;
+  }catch(e){
+    try{
+      const res2 = await fetchWithTimeout('https://endoflife.date/api/linux.json', 7000);
+      if(!res2.ok) throw new Error('HTTP '+res2.status);
+      const json2 = await res2.json();
+      liveKernels = json2.map(r=>({
+        cycle:r.cycle, releaseDate:r.releaseDate, eol:r.eol, lts:!!r.lts,
+        latest:r.latest, latestReleaseDate:r.latestReleaseDate,
+      }));
+      usingFallback = false;
+    }catch(e2){
+      liveKernels = FALLBACK_KERNELS;
+      usingFallback = true;
+    }
+  }
+  fetchTimestamp = new Date();
+  return liveKernels;
+}
+
+function kernelsInWindow(){
+  const cutoff = twoYearsAgo();
+  const src = liveKernels || FALLBACK_KERNELS;
+  const sorted = [...src].sort((a,b)=>new Date(b.releaseDate)-new Date(a.releaseDate));
+  let inWindow = sorted.filter(k=>new Date(k.releaseDate) >= cutoff);
+  const latest = sorted[0];
+  const lts = sorted.find(k=>k.lts);
+  [latest, lts].forEach(k=>{
+    if(k && !inWindow.find(x=>x.cycle===k.cycle)) inWindow.push(k);
+  });
+  inWindow.sort((a,b)=>new Date(b.releaseDate)-new Date(a.releaseDate));
+  return inWindow;
+}
+
+function getLatestStable(){
+  const sorted = [...(liveKernels||FALLBACK_KERNELS)].sort((a,b)=>new Date(b.releaseDate)-new Date(a.releaseDate));
+  return sorted[0];
+}
+function getCurrentLTS(){
+  const sorted = [...(liveKernels||FALLBACK_KERNELS)].sort((a,b)=>new Date(b.releaseDate)-new Date(a.releaseDate));
+  return sorted.find(k=>k.lts);
+}
+
+/* ======================= RENDEROWANIE: SPECYFIKACJA + STATUS JĄDRA ======================= */
+
+function specTable(laptop){
+  let html = '<div class="card"><h2>Specyfikacja — '+laptop.name+'</h2>';
+  html += '<p style="color:var(--muted);font-size:.88rem;margin-top:-4px">'+laptop.intro+'</p>';
+  laptop.specGroups.forEach(g=>{
+    html += '<h3 style="margin-top:16px">'+g.group+'</h3><div class="spec-grid">';
+    g.rows.forEach(([k,v])=>{
+      html += '<div class="spec-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '<div class="note">'+laptop.specNote+'</div>';
+  html += '</div>';
+  return html;
+}
+
+function isKernelEolBadgeCycle(k, latest, lts){
+  let b='';
+  if(k.lts) b+='<span class="badge lts">LTS</span>';
+  if(k.cycle===latest.cycle) b+='<span class="badge latest">najnowsze stabilne</span>';
+  if(lts && k.cycle===lts.cycle) b+='<span class="badge now">obecne LTS</span>';
+  if(isKernelEol(k)) b+='<span class="badge eol">EOL</span>';
+  return b;
+}
+
+function kernelOptionsHtml(kernels, latest, selected){
+  return kernels.map(k=>{
+    const label = 'Linux '+k.cycle+' (najnowszy patch '+k.latest+') — wydane '+k.releaseDate
+      + (k.lts?' [LTS]':'') + (k.cycle===latest.cycle?' [najnowsze]':'') + (isKernelEol(k)?' [EOL]':'');
+    return '<option value="'+k.cycle+'"'+(k.cycle===selected?' selected':'')+'>'+label+'</option>';
+  }).join('');
+}
+
+function kernelSelectorHtml(laptopId, kernels, latest, lts, selected){
+  const opts = kernelOptionsHtml(kernels, latest, selected);
+  return `
+    <div class="card">
+      <h2>1. Wybierz jądro do sprawdzenia</h2>
+      <div class="kernel-select-row">
+        <select id="kernel-select-${laptopId}" onchange="onKernelChange('${laptopId}', this.value)">${opts}</select>
+        <button onclick="refreshKernels()">↻ Odśwież listę jąder</button>
+      </div>
+      <div class="kernel-meta" id="kernel-meta-${laptopId}"></div>
+    </div>
+  `;
+}
+
+function componentStatus(component, kernelVersion){
+  const applicable = component.milestones.filter(m=>cmpVer(m.version,kernelVersion)<=0);
+  if(applicable.length===0) return {text:component.baseline, isBaseline:true};
+  return {text:applicable[applicable.length-1].text, isBaseline:false};
+}
+
+function diffList(component, fromV, toV, toLabel){
+  if(!toV) return '<div class="diffbox"><span class="lbl">'+toLabel+'</span><span class="ok">brak danych</span></div>';
+  const cmp = cmpVer(toV, fromV);
+  let body;
+  if(cmp<=0){
+    body = '<span class="ok">✓ wybrane jądro jest już na tym poziomie lub nowsze — brak zaległości</span>';
+  } else {
+    const diffs = component.milestones.filter(m=>cmpVer(m.version,fromV)>0 && cmpVer(m.version,toV)<=0);
+    if(diffs.length===0){
+      body = '<span class="ok">brak odnotowanych zmian dot. tego podzespołu między wybranym jądrem a '+toLabel+'</span>';
+    } else {
+      body = '<ul>'+diffs.map(d=>'<li>'+impactBadge(d.impact)+' <b>'+d.version+':</b> '+d.text+'</li>').join('')+'</ul>' + impactSummary(diffs);
+    }
+  }
+  return '<div class="diffbox"><span class="lbl">Różnica względem '+toLabel+' ('+toV+')</span>'+body+'</div>';
+}
+
+function impactMethodologyNote(){
+  return '<div class="note" style="margin-bottom:14px">'
+    + '<b>Skąd te znaczki zamiast procentów?</b> Świadomie nie podaję „+X% wydajności" przy zmianach — nikt nie publikuje pomiarów granularnych co do konkretnego komponentu, konkretnej wersji jądra i akurat Twojego i5-11400H+RTX 3050 czy Pentium 987. Wymyślenie takiej liczby byłoby zgadywaniem podanym jako fakt. Zamiast tego każda zmiana ma jakościową '
+    + impactBadge('kosmetyczna')+impactBadge('drobna')+impactBadge('zauwazalna')+impactBadge('istotna')+impactBadge('przelomowa')
+    + ' skalę wpływu, opartą na tym, co faktycznie zmienia dana poprawka (kosmetyczna = porządki w kodzie bez efektu; przełomowa = naprawia coś, co wcześniej realnie nie działało).'
+    + '<br><br><b>Ogólny punkt odniesienia (nie sprzętowo-specyficzny):</b> Phoronix regularnie publikuje testy porównujące wydajność jądra Linux na przestrzeni lat — np. test „Linux 5.15 LTS to 6.17" na serwerach AMD EPYC pokazał ok. <b>+37% zbiorczej wydajności</b> w pakiecie różnych benchmarków na przestrzeni ok. 4 lat wydań. To liczba z zupełnie innego sprzętu (serwer AMD, nie laptop Intel) i innych obciążeń, więc <b>nie da się jej wprost przenieść</b> na TUF-a czy X202EP — ale daje realny rząd wielkości tego, ile potrafi „urosnąć" jądro w wieloletniej perspektywie, w odróżnieniu od pojedynczego skoku między dwiema bliskimi wersjami (jak w tabelach niżej), gdzie zmiany bywają zerowe albo tylko kosmetyczne.'
+    + '</div>';
+}
+
+function componentsHtml(laptop, kernelVersion, latest, lts){
+  let html = '<div class="card"><h2>2. Jak jądro Linux '+kernelVersion+' radzi sobie z podzespołami</h2>';
+  html += impactMethodologyNote();
+  laptop.components.forEach(c=>{
+    const st = componentStatus(c, kernelVersion);
+    html += '<div class="component"><h4>'+c.name+'</h4>';
+    html += '<div class="status">'+st.text+'</div>';
+    if(c.note) html += '<div class="note" style="margin-top:0">'+c.note+'</div>';
+    html += '<div class="diffgrid">';
+    html += diffList(c, kernelVersion, lts && lts.cycle, 'obecnego LTS');
+    html += diffList(c, kernelVersion, latest && latest.cycle, 'najnowszego stabilnego');
+    html += '</div>';
+    html += '<div class="verify">$ '+c.verify+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+/* ======================= RENDEROWANIE: PORÓWNYWARKA SIDE-BY-SIDE ======================= */
+
+function sideBySideCardHtml(laptopId, kernels, latest, selA, selB){
+  const optsA = kernelOptionsHtml(kernels, latest, selA);
+  const optsB = kernelOptionsHtml(kernels, latest, selB);
+  return `
+    <div class="card">
+      <h2>3. Porównywarka wersji jądra — side-by-side diff</h2>
+      <p style="color:var(--muted);font-size:.86rem;margin-top:-4px">Wybierz dwa jądra (np. obecne LTS vs najnowsze stabilne) i zobacz, co się zmieniło w podzespołach istotnych dla tego laptopa. Każda zmiana ma znaczek skali wpływu (kosmetyczna → przełomowa) zamiast zmyślonych procentów — wyjaśnienie metody w sekcji 2 wyżej.</p>
+      <div class="kernel-select-row">
+        <div><label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:3px">Jądro A</label>
+        <select id="sbs-a-${laptopId}">${optsA}</select></div>
+        <div><label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:3px">Jądro B</label>
+        <select id="sbs-b-${laptopId}">${optsB}</select></div>
+        <button class="primary" onclick="runSideBySide('${laptopId}')" style="align-self:flex-end">Porównaj</button>
+      </div>
+      <div id="sbs-result-${laptopId}"></div>
+    </div>
+  `;
+}
+
+function runSideBySide(laptopId){
+  const laptop = LAPTOPS[laptopId];
+  const a = document.getElementById('sbs-a-'+laptopId).value;
+  const b = document.getElementById('sbs-b-'+laptopId).value;
+  const container = document.getElementById('sbs-result-'+laptopId);
+  if(a===b){ container.innerHTML = '<div class="note">Wybierz dwa różne jądra, żeby zobaczyć różnicę.</div>'; return; }
+  const lo = cmpVer(a,b)<=0 ? a : b;
+  const hi = cmpVer(a,b)<=0 ? b : a;
+
+  let html = '<table class="compare-table" style="margin-top:14px"><thead><tr><th>Podzespół</th><th>Stan przy '+a+'</th><th>Stan przy '+b+'</th><th>Co się zmieniło między '+lo+' a '+hi+'</th></tr></thead><tbody>';
+  laptop.components.forEach(c=>{
+    const stA = componentStatus(c, a).text;
+    const stB = componentStatus(c, b).text;
+    const diffs = c.milestones.filter(m=>cmpVer(m.version,lo)>0 && cmpVer(m.version,hi)<=0);
+    const diffHtml = diffs.length
+      ? '<ul style="margin:0;padding-left:16px">'+diffs.map(d=>'<li>'+impactBadge(d.impact)+' <b>'+d.version+':</b> '+d.text+'</li>').join('')+'</ul>' + impactSummary(diffs)
+      : '<span class="ok" style="color:var(--good)">brak zmian dot. tego podzespołu w tym przedziale</span>';
+    html += '<tr><td><b>'+c.name+'</b></td><td>'+stA+'</td><td>'+stB+'</td><td>'+diffHtml+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+/* ======================= RENDEROWANIE: GENERATOR KONFIGURACJI ======================= */
+
+function kernelConfigCardHtml(laptop){
+  let html = '<div class="card"><h2>4. Generator rekomendowanej konfiguracji jądra (.config) i Gentoo</h2>';
+  html += '<p style="color:var(--muted);font-size:.86rem;margin-top:-4px">Punkt startowy do <code>make menuconfig</code> / <code>make nconfig</code> (lub <code>/etc/portage/savedconfig/sys-kernel/gentoo-kernel</code>). To checklista opcji krytycznych dla tego laptopa, nie pełna, gotowa konfiguracja — resztę (filesystemy, sieć ogólną itd.) dobierz jak zwykle, np. przez <code>make localmodconfig</code> uruchomiony już na Gentoo na tym sprzęcie.</p>';
+
+  laptop.kernelConfig.groups.forEach(g=>{
+    html += '<h3 style="margin-top:16px">'+g.title+'</h3><table class="cfg"><thead><tr><th style="width:38%">Opcja Kconfig</th><th>Po co</th></tr></thead><tbody>';
+    g.options.forEach(o=>{
+      html += '<tr><td class="opt">'+o.opt+'</td><td>'+o.desc+'</td></tr>';
+    });
+    html += '</tbody></table>';
+  });
+
+  html += '<h3 style="margin-top:18px">Wpisy do /etc/portage/package.use</h3>';
+  html += '<pre>'+laptop.kernelConfig.packageUse.map(([pkg,use,desc])=>
+    '<span class="c"># '+desc+'</span>\n'+pkg+(use?' '+use:'')
+  ).join('\n\n')+'</pre>';
+
+  html += '</div>';
+  return html;
+}
+
+/* ======================= RENDEROWANIE: ASYSTENT KOMPILACJI ======================= */
+
+function calcMakeopts(threads, ramGB){
+  const byCpu = threads + 1;
+  const byRam = Math.max(1, Math.floor(ramGB / 2));
+  const j = Math.max(1, Math.min(byCpu, byRam));
+  const l = Math.max(1, threads);
+  return {j, l, limitedBy: byRam < byCpu ? 'RAM (ok. 2 GB/zadanie)' : 'liczbę wątków CPU'};
+}
+
+function compileCardHtml(laptop){
+  const c = laptop.compile;
+  const r = calcMakeopts(c.threads, c.ramGB);
+  const other = laptop.id==='tuf' ? LAPTOPS.x202ep : LAPTOPS.tuf;
+  const rOther = calcMakeopts(other.compile.threads, other.compile.ramGB);
+
+  let html = '<div class="card"><h2>5. Asystent optymalizacji kompilacji (emerge / make.conf)</h2>';
+  html += '<p style="color:var(--muted);font-size:.86rem;margin-top:-4px">Podstawy CFLAGS/MAKEOPTS i porównanie metod instalacji jądra. Pełną, klikaną krok-po-kroku instrukcję jak w praktyce ustawić dwa jądra na raz (zoptymalizowane + zapasowe) znajdziesz w sekcji 6 niżej.</p>';
+
+  html += '<h3>-march=native — kompilacja pod ten konkretny procesor</h3>';
+  html += '<p style="font-size:.86rem;color:var(--muted)">Flaga <code>-march=native</code> mówi GCC „wykryj instrukcje CPU, na którym się kompiluje, i użyj ich wszystkich”. Działa poprawnie tylko wtedy, gdy kompilujesz <b>na tej samej maszynie</b>, na której kod będzie uruchamiany — a dokładnie tak działa Gentoo, czy to z <code>sys-kernel/gentoo-sources</code>, czy z <code>sys-kernel/gentoo-kernel</code> (patrz sekcja 6).</p>';
+  html += '<pre># /etc/portage/make.conf — '+laptop.name+'\n<span class="c"># wariant uniwersalny (zalecany, zawsze poprawny na tej maszynie):</span>\nCOMMON_FLAGS="-march=native -O2 -pipe"\nCFLAGS="${COMMON_FLAGS}"\nCXXFLAGS="${COMMON_FLAGS}"\n\n<span class="c"># wariant jawny, gdyby -march=native nie zadziałał (np. crossdev, sprzęt startowy z chroot):</span>\n<span class="c"># CPU: '+laptop.specGroups[0].rows[0][1]+'</span>\nCOMMON_FLAGS="-march='+c.arch+' -O2 -pipe"</pre>';
+  html += '<div class="note">Wymaga '+c.gccMin+', żeby nazwa architektury <code>'+c.arch+'</code> była rozpoznawana. Sprawdź: <code>gcc -march=native -E -v - &lt;/dev/null 2&gt;&amp;1 | grep cc1</code><br>'
+    + (laptop.id==='tuf'
+      ? 'Konkretnie na Tiger Lake-H (i5-11400H): CPU wspiera <b>AVX-512</b> (potwierdzone w specyfikacji Intela — SSE4.1/4.2, AVX2, AVX-512), więc <code>-march=native</code> realnie da kompilatorowi znacznie więcej niż na starszych CPU. Zweryfikuj po instalacji: <code>cat /proc/cpuinfo | grep -o "avx[a-z0-9_]*" | sort -u</code>.'
+      : 'Konkretnie na Pentium 987 (Sandy Bridge): Intel tradycyjnie <b>wyłącza AVX</b> na chipach z linii Pentium/Celeron (segmentacja rynkowa) — mimo obecności układu na krzemie, w praktyce dostępne jest tylko do SSE4.2. <code>-march=native</code> nadal jest poprawnym wyborem (GCC wykryje realne możliwości), po prostu nie spodziewaj się przyspieszenia od AVX. Zweryfikuj po instalacji: <code>cat /proc/cpuinfo | grep flags | head -1</code> i poszukaj (lub nie) <code>avx</code> na liście.')
+    + '</div>';
+
+  html += '<h3 style="margin-top:20px">Kalkulator MAKEOPTS</h3>';
+  html += '<p style="font-size:.86rem;color:var(--muted)">Reguła: liczba zadań (<code>-j</code>) ograniczona mniejszą z dwóch wartości — (wątki CPU + 1) oraz (RAM w GB ÷ 2, licząc ok. 2 GB na zadanie kompilacji jako bezpieczny margines). Limit obciążenia (<code>-l</code>) ~ liczba wątków, żeby system zostawał responsywny.</p>';
+
+  html += '<div class="calc-grid">'
+    + '<div><label>Wątki CPU</label><input type="number" id="mk-threads-'+laptop.id+'" value="'+c.threads+'" min="1"></div>'
+    + '<div><label>RAM (GB)</label><input type="number" id="mk-ram-'+laptop.id+'" value="'+c.ramGB+'" min="1"></div>'
+    + '<div style="grid-column:span 2"><button class="primary" onclick="runMakeopts(\''+laptop.id+'\')">Przelicz</button></div>'
+    + '</div>';
+  html += '<div class="result-box" id="mk-result-'+laptop.id+'">'
+    + '<div class="big">MAKEOPTS="-j'+r.j+' -l'+r.l+'"</div>'
+    + '<div style="font-size:.8rem;margin-top:4px;color:#4a3300">Domyślne wartości dla '+laptop.name+' ('+c.threads+' wątków, '+c.ramGB+' GB RAM) — ograniczone przez '+r.limitedBy+'.</div>'
+    + '</div>';
+
+  if(laptop.id==='x202ep'){
+    html += '<div class="note" style="margin-top:10px">Przy 2 wątkach i 4 GB RAM kompilacja jądra na samym X202EP zajmie realnie długo (rzędu 30–60+ minut) i przy jednoczesnym uruchomieniu czegoś innego łatwo o zapchanie pamięci / interwencję OOM killera. Rozważ: swap/zswap jako zabezpieczenie, kompilację cross/distcc z mocniejszej maszyny (np. z TUF-a), albo po prostu <code>gentoo-kernel-bin</code> zamiast kompilować lokalnie — patrz tabela niżej.</div>';
+  }
+
+  html += '<h3 style="margin-top:20px">Trzy drogi instalacji jądra w Gentoo</h3>';
+  html += '<p style="font-size:.86rem;color:var(--muted)">To częsty punkt zamieszania: „gentoo-sources” to nie jedyna droga do własnej kompilacji. Dystrybucyjny pakiet <code>gentoo-kernel</code> też się kompiluje lokalnie (więc też korzysta z <code>-march=native</code>), ale robi to w dużej mierze automatycznie — stąd sensowne połączenie „szybko jak binarka, szyte na miarę jak źródła” użyte w sekcji 6.</p>';
+  html += '<table class="compare-table"><thead><tr><th></th><th>sys-kernel/gentoo-sources</th><th>sys-kernel/gentoo-kernel</th><th>sys-kernel/gentoo-kernel-bin</th></tr></thead><tbody>'
+    + '<tr><td><b>Co to jest</b></td><td>Same źródła — Ty ręcznie konfigurujesz (menuconfig) i kompilujesz</td><td>Zautomatyzowany pakiet dystrybucyjny — kompiluje się lokalnie, ale sam ogarnia initramfs, instalację do /boot, hooki</td><td>Gotowy, prekompilowany pakiet binarny jądra</td></tr>'
+    + '<tr><td><b>Optymalizacja pod CPU</b></td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, ręcznie dobrane sterowniki</td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, konfiguracja z <code>USE=savedconfig</code> (patrz sekcja 6)</td><td><span class="pill no">NIE</span> — generyczny <code>x86-64</code>, szeroki zestaw modułów dla kompatybilności</td></tr>'
+    + '<tr><td><b>Czas instalacji/aktualizacji</b></td><td>Długi, w pełni ręczny</td><td>Długi (kompilacja), ale automatyczny — nowe jądro buduje się samo przy <code>emerge --update</code></td><td>Sekundy — samo pobranie i rozpakowanie</td></tr>'
+    + '<tr><td><b>Kontrola nad .config</b></td><td>Pełna, ręczna za każdym razem</td><td>Pełna, ale zapisana raz jako <code>savedconfig</code> i używana automatycznie przy kolejnych wersjach</td><td>Brak — dostajesz to, co przygotowali maintainerzy</td></tr>'
+    + '<tr><td><b>Zalecane w tym przewodniku</b></td><td>Opcja dla purystów / do nauki — sekcja 6 jej nie używa</td><td><span class="pill yes">GŁÓWNE jądro</span> — patrz sekcja 6</td><td><span class="pill yes">ZAPASOWE jądro</span> — patrz sekcja 6</td></tr>'
+    + '</tbody></table>';
+
+  html += '</div>';
+  return html;
+}
+
+function runMakeopts(laptopId){
+  const threads = parseInt(document.getElementById('mk-threads-'+laptopId).value,10) || 1;
+  const ram = parseInt(document.getElementById('mk-ram-'+laptopId).value,10) || 1;
+  const r = calcMakeopts(threads, ram);
+  document.getElementById('mk-result-'+laptopId).innerHTML =
+    '<div class="big">MAKEOPTS="-j'+r.j+' -l'+r.l+'"</div>'
+    + '<div style="font-size:.8rem;margin-top:4px;color:#4a3300">Dla '+threads+' wątków i '+ram+' GB RAM — ograniczone przez '+r.limitedBy+'.</div>';
+}
+
+/* ======================= RENDEROWANIE: DWA JĄDRA NA RAZ (KROK PO KROKU) ======================= */
+
+function step(n, title, cmd, bullets, note){
+  let html = '<div class="component"><h4>Krok '+n+': '+title+'</h4>';
+  if(cmd) html += '<pre>'+cmd+'</pre>';
+  if(bullets && bullets.length){
+    html += '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'+bullets.map(b=>'<li style="margin-bottom:5px">'+b+'</li>').join('')+'</ul>';
+  }
+  if(note) html += '<div class="note" style="margin-top:10px">'+note+'</div>';
+  html += '</div>';
+  return html;
+}
+
+function dualKernelGuideHtml(laptop){
+  const c = laptop.compile;
+  const r = calcMakeopts(c.threads, c.ramGB);
+  const isTuf = laptop.id === 'tuf';
+
+  let html = '<div class="card"><h2>6. Instrukcja krok po kroku: dwa jądra na raz (zoptymalizowane + zapasowe binarne)</h2>';
+  html += '<p style="font-size:.87rem;color:var(--muted);margin-top:-4px">Idea: trzymasz w systemie <b>dwa</b> jądra jednocześnie. Główne — skompilowane specjalnie pod '+laptop.name+' (<code>sys-kernel/gentoo-kernel</code> z <code>-march=native</code>), więc potencjalnie szybsze i lżejsze. Oraz zapasowe — gotowe, binarne (<code>sys-kernel/gentoo-kernel-bin</code>), które zawsze się uruchomi, nawet jeśli coś pójdzie nie tak przy aktualizacji tego pierwszego. Menu rozruchowe GRUB pozwala wybrać, z którego skorzystać przy starcie — więc nic nie ryzykujesz. Każde polecenie niżej jest wyjaśnione linijka po linijce.</p>';
+
+  if(!isTuf){
+    html += '<div class="note">Uczciwe zastrzeżenie na start: przy 2 wątkach i 4 GB RAM w X202EP kompilacja własnego jądra (Krok 5) może zająć naprawdę długo (patrz sekcja 5), a zysk wydajności na tak starym CPU jest marginalny. Warto mimo to przejść przez Kroki 1–4 i 6 (są szybkie), a w Kroku 5 po prostu uzbroić się w cierpliwość — albo, jeśli Ci się nie spieszy do posiadania obu jąder, zostać na razie tylko przy <code>gentoo-kernel-bin</code> i wrócić do kompilacji własnego później.</div>';
+  }
+
+  html += step(1, 'Powiedz Portage, żeby użył Twojej własnej konfiguracji jądra',
+    'sudo nano /etc/portage/package.use/kernel',
+    [
+      '<code>sudo</code> — uruchamia polecenie z uprawnieniami administratora (root); bez tego nie zapiszesz pliku w <code>/etc</code>.',
+      '<code>nano</code> — prosty, tekstowy edytor otwierany w terminalu (strzałki do poruszania się, bez myszki).',
+      '<code>/etc/portage/package.use/kernel</code> — plik, w którym Portage trzyma dodatkowe opcje (USE flagi) tylko dla wybranych pakietów — tu: dla jądra.'
+    ]) ;
+  html += '<div class="component"><h4>Wpisz do otwartego pliku dokładnie tę linię</h4><pre>sys-kernel/gentoo-kernel savedconfig initramfs</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
+    + '<li style="margin-bottom:5px"><code>savedconfig</code> — każe użyć Twojej własnej, wyciętej pod ten laptop konfiguracji z katalogu <code>/etc/portage/savedconfig/</code> zamiast domyślnej.</li>'
+    + '<li style="margin-bottom:5px"><code>initramfs</code> — każe zbudować obraz startowy w RAM (potrzebny, żeby jądro w ogóle zobaczyło dysk '+(isTuf?'NVMe i kartę graficzną':'SATA')+' na starcie). W nowszych wersjach <code>gentoo-kernel</code> ta flaga bywa włączona domyślnie — wpisanie jej jawnie nic nie psuje i jasno pokazuje intencję.</li>'
+    + '</ul>'
+    + '<div class="note">Zapisz plik: <code>Ctrl+O</code>, potem <code>Enter</code>, żeby zatwierdzić nazwę. Wyjdź z edytora: <code>Ctrl+X</code>.</div></div>';
+
+  html += step(2, 'Włącz optymalizację pod '+laptop.specGroups[0].rows[0][1].split('(')[0].trim(),
+    'sudo nano /etc/portage/make.conf',
+    [
+      'To główny plik konfiguracyjny Portage — obowiązuje dla całego systemu, nie tylko jądra.',
+      'Znajdź istniejące linie <code>COMMON_FLAGS</code>/<code>CFLAGS</code>/<code>MAKEOPTS</code> i zamień je na wartości niżej, albo dopisz je na końcu pliku, jeśli ich tam jeszcze nie ma.'
+    ]);
+  html += '<div class="component"><pre>COMMON_FLAGS="-O2 -pipe -march=native"\nCFLAGS="${COMMON_FLAGS}"\nCXXFLAGS="${COMMON_FLAGS}"\n\nMAKEOPTS="-j'+r.j+' -l'+r.l+'"</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
+    + '<li style="margin-bottom:5px"><code>-march=native</code> — dostosowanie pod Twój konkretny procesor: kompilator używa wszystkich instrukcji, jakie faktycznie ma '+laptop.specGroups[0].rows[0][1].split('(')[0].trim()+' (patrz uwaga o AVX w sekcji 5 wyżej).</li>'
+    + '<li style="margin-bottom:5px"><code>-O2</code> — standardowy, bezpieczny poziom optymalizacji (szybszy kod bez ryzyka niestabilności, jakie czasem niesie <code>-O3</code>).</li>'
+    + '<li style="margin-bottom:5px"><code>-pipe</code> — kompilator używa potoków zamiast plików tymczasowych między etapami kompilacji — trochę szybciej, kosztem odrobiny RAM.</li>'
+    + '<li style="margin-bottom:5px"><code>MAKEOPTS="-j'+r.j+' -l'+r.l+'"</code> — dokładnie wartości z kalkulatora w sekcji 5 dla '+laptop.name+' ('+c.threads+' wątków, '+c.ramGB+' GB RAM): <code>-j'+r.j+'</code> to liczba równoległych zadań kompilacji, <code>-l'+r.l+'</code> to limit średniego obciążenia systemu, żeby komputer został responsywny w trakcie budowania.</li>'
+    + '</ul><div class="note">Zapisz i wyjdź tak samo jak w Kroku 1: <code>Ctrl+O</code> → <code>Enter</code> → <code>Ctrl+X</code>.</div></div>';
+
+  html += step(3, 'Wygeneruj konfigurację jądra wyciętą pod Twój sprzęt',
+    null,
+    [
+      'Zanim zaczniesz — podepnij/włącz wszystko, co jądro ma wykryć: mysz/klawiaturę USB (jeśli używasz), Wi-Fi'+(isTuf?' i Bluetooth':'')+'. <code>make localmodconfig</code> patrzy na to, co aktualnie działa w systemie, więc urządzenia niepodłączone w tym momencie mogą zostać pominięte.'
+    ]);
+  html += '<div class="component"><pre>sudo emerge --noreplace sys-kernel/gentoo-sources</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li>Pobiera źródła jądra — potrzebne tylko na chwilę, żeby wygenerować plik <code>.config</code>, który potem trafi do <code>savedconfig</code>. <code>--noreplace</code> nic nie zrobi, jeśli źródła już masz.</li></ul></div>';
+  html += '<div class="component"><pre>cd /usr/src/linux</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li><code>cd</code> — zmienia bieżący katalog terminala na ten z rozpakowanymi źródłami jądra (Gentoo utrzymuje tam zawsze aktualny dowiązanie <code>/usr/src/linux</code>).</li></ul></div>';
+  html += '<div class="component"><pre>sudo make localmodconfig</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li>Tworzy odchudzoną konfigurację na podstawie modułów aktualnie załadowanych w Twoim systemie — zamiast pytać o tysiące opcji, włącza z grubsza to, czego realnie używasz. Jeśli pojawią się pytania na ekranie (nowe opcje bez wartości domyślnej), po prostu wciskaj <code>Enter</code>, żeby przyjąć wartość domyślną.</li></ul></div>';
+  html += '<div class="component"><h4>Zweryfikuj kluczowe opcje w edytorze menu</h4><pre>sudo make nconfig</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
+    + '<li style="margin-bottom:5px">W środku naciśnij <code>F3</code>, żeby otworzyć wyszukiwarkę opcji, wpisz nazwę i sprawdź, czy stoi przy niej <code>[*]</code> (wbudowane) lub <code>[M]</code> (moduł) — nie <code>[ ]</code> (wyłączone).</li>'
+    + (isTuf
+        ? '<li style="margin-bottom:5px">Wyszukaj <code>ASUS_WMI</code> — odpowiada m.in. za jasność klawiatury i próg ładowania baterii (patrz sekcja 4).</li>'
+          + '<li style="margin-bottom:5px">Wyszukaj <code>MT7921E</code> — sterownik Twojej karty Wi-Fi 6 MediaTek; bez niego po restarcie nie będziesz mieć internetu.</li>'
+          + '<li style="margin-bottom:5px">Wyszukaj <code>DRM_I915</code> — sterownik zintegrowanej grafiki Intela, wymagany zawsze, niezależnie od tego, czy używasz NVIDIA.</li>'
+          + '<li style="margin-bottom:5px">Sterownika NVIDIA <b>nie</b> szukaj tutaj — własnościowy <code>x11-drivers/nvidia-drivers</code> instaluje się osobno przez <code>emerge</code> i nie jest częścią konfiguracji jądra (patrz sekcja 4).</li>'
+        : '<li style="margin-bottom:5px">Wyszukaj <code>DRM_I915</code> — sterownik Twojej jedynej karty graficznej (Intel HD Graphics 3000).</li>'
+          + '<li style="margin-bottom:5px">Wyszukaj Twój sterownik Wi-Fi — <code>ATH9K</code> (Atheros) albo <code>RTL8192CE</code> (Realtek), zależnie od tego, co wykryjesz na swoim egzemplarzu poleceniem <code>lspci -k</code> (patrz sekcja 2).</li>'
+          + '<li style="margin-bottom:5px">Wyszukaj <code>HID_MULTITOUCH</code> — obsługa ekranu dotykowego.</li>')
+    + '<li style="margin-bottom:5px">Na koniec naciśnij <code>F9</code>, żeby zapisać zmiany i wyjść.</li>'
+    + '</ul></div>';
+
+  html += step(4, 'Zapisz tę konfigurację jako wzorzec na przyszłość',
+    'sudo mkdir -p /etc/portage/savedconfig/sys-kernel\nsudo cp /usr/src/linux/.config /etc/portage/savedconfig/sys-kernel/gentoo-kernel',
+    [
+      '<code>mkdir -p</code> — tworzy katalog docelowy razem z brakującymi katalogami nadrzędnymi (nie zgłosi błędu, jeśli część już istnieje).',
+      '<code>cp</code> — kopiuje przygotowany przed chwilą plik <code>.config</code> pod nazwę, której szuka flaga <code>savedconfig</code> z Kroku 1. Dzięki temu każda kolejna wersja <code>gentoo-kernel</code> automatycznie odziedziczy tę samą, wyciętą pod Twój sprzęt konfigurację — nie robisz Kroku 3 przy każdej aktualizacji.'
+    ]);
+
+  html += step(5, 'Zainstaluj oba jądra i skompiluj to główne',
+    'sudo emerge --noreplace sys-kernel/gentoo-kernel-bin sys-kernel/gentoo-kernel\nsudo emerge -av sys-kernel/gentoo-kernel',
+    [
+      'Pierwsza linia mówi Portage: „chcę mieć w systemie oba pakiety jądra” — <code>--noreplace</code> nic nie nadpisze, jeśli któryś już masz.',
+      'Druga linia faktycznie uruchamia kompilację jądra <code>gentoo-kernel</code> z ustawieniami z Kroków 1–4. <code>-a</code> poprosi o potwierdzenie przed startem (możesz jeszcze się rozmyślić), <code>-v</code> pokaże więcej szczegółów w trakcie budowania.',
+      isTuf
+        ? 'Na TUF-ie (MAKEOPTS -j'+r.j+') to zwykle kilka–kilkanaście minut.'
+        : 'Na X202EP (MAKEOPTS -j'+r.j+') licz się z naprawdę długim czasem — to dobry moment na kawę, spacer albo po prostu zostawienie laptopa na noc.'
+    ]);
+
+  html += step(6, 'Zaktualizuj menu rozruchowe GRUB',
+    'sudo grub-mkconfig -o /boot/grub/grub.cfg',
+    [
+      '<code>grub-mkconfig</code> skanuje katalog <code>/boot</code>, znajduje tam wszystkie zainstalowane jądra (i to świeżo skompilowane, i binarne zapasowe) i dopisuje je do menu, które zobaczysz przy starcie komputera.'
+    ]);
+
+  html += '<h3 style="margin-top:20px">Obsługa menu GRUB przy starcie</h3>';
+  html += '<ul style="font-size:.85rem;padding-left:20px">'
+    + '<li style="margin-bottom:6px"><b>Domyślny start</b> — pierwsza pozycja na samej górze listy to zwykle Twoje świeże, zoptymalizowane pod procesor jądro (<code>gentoo-kernel</code>). Jeśli nic nie zrobisz, ono się uruchomi.</li>'
+    + '<li style="margin-bottom:6px"><b>Uruchomienie zapasowego jądra binarnego</b> — strzałką w dół najedź na „Advanced options for Gentoo Linux” i wciśnij <code>Enter</code>. Z rozwiniętej listy wybierz pozycję kończącą się zwykle na <code>-gentoo-dist</code> (to Twoje <code>gentoo-kernel-bin</code>) i wciśnij <code>Enter</code>. Rób tak zawsze, gdy główne jądro po aktualizacji nie chce się uruchomić.</li>'
+    + '</ul>';
+
+  html += '<h3 style="margin-top:18px">Bieżąca konserwacja i porządki</h3>';
+  html += '<div class="component"><p style="font-size:.85rem;margin:0 0 8px">Przy zwykłej aktualizacji systemu:</p><pre>sudo emerge --update --deep --newuse @world</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li>Jeśli wyjdzie nowsza wersja <code>gentoo-kernel</code>, doliczy się do tej komendy i skompiluje sama — dzięki <code>savedconfig</code> z Kroku 4 użyje tej samej, sprawdzonej konfiguracji. Sama kompilacja jądra to zwykle dodatkowe 2–5 minut'+(isTuf?'':' (na X202EP realnie więcej — patrz Krok 5)')+'.</li></ul></div>';
+  html += '<div class="component"><p style="font-size:.85rem;margin:0 0 8px">Co jakiś czas warto posprzątać stare, nieużywane już wersje jądra z dysku:</p><pre>sudo emerge --depclean\nsudo eclean-kernel\nsudo grub-mkconfig -o /boot/grub/grub.cfg</pre>'
+    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
+    + '<li style="margin-bottom:5px"><code>emerge --depclean</code> — usuwa pakiety, które nie są już nigdzie potrzebne (w tym stare paczki jąder, o ile nic ich nie blokuje).</li>'
+    + '<li style="margin-bottom:5px"><code>eclean-kernel</code> — celowo sprząta pliki starych, nieaktualnych już wersji jądra z <code>/boot</code> i <code>/lib/modules</code> (zainstaluj wcześniej: <code>sudo emerge app-admin/eclean-kernel</code>, jeśli jeszcze go nie masz).</li>'
+    + '<li style="margin-bottom:5px"><code>grub-mkconfig</code> — na koniec zawsze odśwież menu GRUB, żeby zniknęły z niego wpisy do jąder, których już fizycznie nie ma na dysku.</li>'
+    + '</ul></div>';
+
+  html += '</div>';
+  return html;
+}
+
+/* ======================= RENDEROWANIE: SKRYPT WERYFIKACYJNY ======================= */
+
+function buildCheckScript(){
+  return `#!/usr/bin/env bash
+# Gentoo Kernel Watch — skrypt weryfikacyjny (read-only, bez sudo)
+# Sprawdza stan jądra i modułów pod ASUS TUF Gaming F15 / ASUS VivoBook X202EP
+set -uo pipefail
+
+BOLD="\\033[1m"; GREEN="\\033[32m"; RED="\\033[31m"; YELLOW="\\033[33m"; RESET="\\033[0m"
+ok(){ echo -e "  \${GREEN}[OK]\${RESET} $1"; }
+miss(){ echo -e "  \${RED}[BRAK]\${RESET} $1"; }
+info(){ echo -e "  \${YELLOW}[i]\${RESET} $1"; }
+
+echo -e "\${BOLD}== Gentoo Kernel Watch — raport diagnostyczny ==\${RESET}"
+echo "Data: $(date -Is)"
+echo "Jądro: $(uname -srmo)"
+echo
+
+PRODUCT="nieznany (brak dostępu do /sys/class/dmi/id/product_name)"
+if [ -r /sys/class/dmi/id/product_name ]; then
+  PRODUCT="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
+fi
+echo "Wykryty model (DMI): \${BOLD}\${PRODUCT}\${RESET}"
+
+PROFILE="nieznany"
+case "$PRODUCT" in
+  *FX506*|*TUF*) PROFILE="tuf" ;;
+  *X202E*|*X201E*) PROFILE="x202ep" ;;
+esac
+if [ "$PROFILE" = "nieznany" ]; then
+  echo "Nie udało się automatycznie dopasować profilu — podaj go ręcznie: ./check.sh tuf | ./check.sh x202ep"
+  if [ "\${1:-}" != "" ]; then PROFILE="$1"; fi
+fi
+echo "Profil sprawdzania: \${BOLD}\${PROFILE}\${RESET}"
+echo
+
+echo -e "\${BOLD}-- Załadowane moduły (lsmod) --\${RESET}"
+MODULES=$(lsmod | awk '{print $1}')
+
+check_mod(){
+  local name="$1" label="$2"
+  if echo "$MODULES" | grep -qx "$name"; then ok "$label ($name) — załadowany"
+  elif lspci -k 2>/dev/null | grep -qi "$name"; then info "$label ($name) — wpięty w jądro (built-in) lub wykryty inaczej niż moduł"
+  else miss "$label ($name) — nie załadowany"
+  fi
+}
+
+if [ "$PROFILE" = "tuf" ]; then
+  check_mod i915 "Intel iGPU (Tiger Lake)"
+  check_mod nvidia "NVIDIA (własnościowy sterownik)"
+  check_mod nouveau "NVIDIA (nouveau, open-source)"
+  check_mod mt7921e "Wi-Fi 6 MediaTek MT7921"
+  check_mod r8169 "LAN Realtek"
+  check_mod asus_wmi "ASUS WMI (platforma)"
+  check_mod asus_nb_wmi "ASUS Notebook WMI"
+  check_mod snd_hda_intel "Audio HD"
+  check_mod thunderbolt "USB4 / Thunderbolt"
+  check_mod nvme "NVMe"
+elif [ "$PROFILE" = "x202ep" ]; then
+  check_mod i915 "Intel HD Graphics 3000"
+  check_mod ath9k "Wi-Fi Atheros"
+  check_mod rtl8192ce "Wi-Fi Realtek"
+  check_mod r8169 "LAN Realtek 10/100"
+  check_mod hid_multitouch "Ekran dotykowy"
+  check_mod snd_hda_intel "Audio HD"
+  check_mod btusb "Bluetooth"
+else
+  echo "  (pomijam listę modułów — nieznany profil)"
+fi
+
+echo
+echo -e "\${BOLD}-- Karty PCI (lspci -k) --\${RESET}"
+if command -v lspci >/dev/null; then
+  lspci -k 2>/dev/null | grep -E "^[0-9a-f]{2}:|Kernel (driver|modules)" || echo "  brak wyniku (uruchom jako root dla pełnych informacji)"
+else
+  miss "lspci niedostępny — zainstaluj sys-apps/pciutils"
+fi
+
+echo
+echo -e "\${BOLD}-- Zarządzanie energią CPU --\${RESET}"
+if [ -r /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver ]; then
+  echo "  scaling_driver: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver)"
+else
+  miss "brak /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver — sprawdź czy CONFIG_CPU_FREQ jest włączone"
+fi
+
+echo
+echo -e "\${BOLD}-- Podsumowanie --\${RESET}"
+echo "To tylko odczyt bieżącego stanu systemu — porównaj z sekcją 2 (\\"Jak jądro radzi sobie z podzespołami\\")"
+echo "na stronie Gentoo Kernel Watch dla wybranego jądra i profilu \\"\${PROFILE}\\"."
+echo "Wynik możesz skopiować i zachować do własnej diagnostyki."
+`;
+}
+
+function checkScriptCardHtml(laptop){
+  const script = buildCheckScript();
+  const escaped = script.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `
+    <div class="card">
+      <h2>7. Skrypt weryfikacyjny CLI</h2>
+      <p style="color:var(--muted);font-size:.86rem;margin-top:-4px">
+        Uczciwie: nie hostuję tego skryptu pod żadnym publicznym URL-em, więc nie ma tu bezpiecznego jednolinijkowca <code>curl | bash</code> —
+        taki link na razie by nie istniał. Pobierz plik poniżej i uruchom go lokalnie na swoim Gentoo. Skrypt jest czysto diagnostyczny
+        (tylko odczyt: <code>uname</code>, <code>lspci -k</code>, <code>lsmod</code>, odczyt <code>/sys</code>) — nie wymaga root i niczego nie zmienia w systemie.
+        Jeśli sam opublikujesz go później np. na GitHub Pages, wtedy <code>curl -sL twoj-url | bash</code> zacznie mieć sens.
+      </p>
+      <div class="kernel-select-row">
+        <button class="primary" onclick="downloadCheckScript()">⬇ Pobierz check.sh</button>
+        <button onclick="copyCheckScript(this)">📋 Kopiuj do schowka</button>
+      </div>
+      <div class="note">Użycie: <code>chmod +x check.sh &amp;&amp; ./check.sh tuf</code>  (albo <code>./check.sh x202ep</code> — bez argumentu skrypt spróbuje wykryć model sam z DMI).</div>
+      <pre style="max-height:340px;overflow-y:auto">${escaped}</pre>
+    </div>
+  `;
+}
+
+function downloadCheckScript(){
+  const blob = new Blob([buildCheckScript()], {type:'text/x-sh'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'check.sh';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function copyCheckScript(btn){
+  navigator.clipboard.writeText(buildCheckScript()).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = '✓ Skopiowano';
+    setTimeout(()=>{btn.textContent = orig;}, 1800);
+  }).catch(()=>{ alert('Nie udało się skopiować — pobierz plik zamiast tego.'); });
+}
+
+/* ======================= RENDEROWANIE: ŚCIĄGAWKA AKTUALIZACJI SYSTEMU ======================= */
+
+function renderUpdateTab(){
+  const container = document.getElementById('tab-update');
+  let html = '';
+
+  html += '<div class="card"><h2>Ściągawka: jak bezpiecznie zaktualizować system Gentoo</h2>';
+  html += '<p style="color:var(--muted);font-size:.87rem;margin-top:-4px">Ta zakładka nie zależy od wybranego jądra — to stały checklist, do którego możesz wracać za każdym razem, gdy robisz <code>emerge --sync</code> i aktualizację. Każde polecenie jest rozbite krok po kroku, tak jak w sekcji 6 dla obu laptopów.</p>';
+  html += '<h3>Najpierw najważniejsze pytanie: czy skompilowane pakiety zostaną skompilowane, a binarne binarne?</h3>';
+  html += '<div class="note" style="font-size:.85rem"><b>Tak — i dzieje się to samo, bez żadnego dodatkowego ustawienia.</b> Portage traktuje np. <code>sys-kernel/gentoo-kernel</code> i <code>sys-kernel/gentoo-kernel-bin</code> (z sekcji 6) jako dwa zupełnie osobne pakiety o różnych nazwach — nic ich ze sobą nie miesza ani nie przełącza w locie. Skoro masz zainstalowane oba, to przy każdej aktualizacji: <code>gentoo-kernel</code> zawsze się kompiluje od nowa (bo tak działa jego ebuild), a <code>gentoo-kernel-bin</code> zawsze pobiera gotową binarkę (bo tak działa jego ebuild). Dokładnie ta sama zasada dotyczy każdego innego pakietu w systemie — to, czy coś jest kompilowane czy binarne, wynika z tego, którą nazwę pakietu masz zainstalowaną, a nie z jakiegoś globalnego przełącznika.<br><br>Jedyny wyjątek, o którym warto wiedzieć na przyszłość: gdybyś kiedyś świadomie włączył pobieranie gotowych binarek dla zwykłych pakietów (funkcja <code>getbinpkg</code> / oficjalny binhost Gentoo, konfigurowana w <code>/etc/portage/binrepos.conf</code>), Portage mógłby zacząć podstawiać gotowe binarki zamiast kompilować niektóre pakiety, jeśli akurat pasujący plik binarny byłby dostępny. Domyślna instalacja Gentoo (taka, jaką budowałeś w sekcji 6) tego nie robi — więc dopóki sam tego nie skonfigurujesz, zasada „kompilowane = zawsze kompilowane, bin = zawsze bin” trzyma się sama.</div>';
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📋 Faza I — zanim zaczniesz aktualizację</h2>';
+  html += step(1, 'Zsynchronizuj drzewo Portage',
+    'sudo emerge --sync',
+    [
+      '<code>emerge --sync</code> — pobiera świeżą listę wszystkich dostępnych pakietów i ich wersji (tzw. „drzewo Portage") z serwerów Gentoo. Ten krok niczego nie instaluje ani nie zmienia w Twoim systemie — tylko odświeża lokalny spis „co w ogóle jest dostępne do zainstalowania".',
+      'Jeśli masz zainstalowany <code>app-portage/eix</code>, lepszym odpowiednikiem jest <code>eix-sync</code> — robi to samo, a dodatkowo od razu odświeża szybką wyszukiwarkę pakietów.'
+    ],
+    'Rób to zawsze jako pierwszy krok — bez świeżego drzewa Portage nie zobaczysz najnowszych wersji pakietów ani ważnych komunikatów z Kroku 2.');
+  html += step(2, 'Przeczytaj oficjalne komunikaty (news) od deweloperów Gentoo',
+    'eselect news list\neselect news read',
+    [
+      '<code>eselect news list</code> — pokazuje listę „newsów", czyli oficjalnych ogłoszeń Gentoo o zmianach wymagających Twojej uwagi (np. „przed tą aktualizacją ręcznie zmień plik X").',
+      '<code>eselect news read</code> — wyświetla treść najnowszego newsa (albo konkretnego, jeśli dopiszesz jego numer z listy, np. <code>eselect news read 3</code>).'
+    ],
+    'To jeden z najczęściej pomijanych przez początkujących kroków — a jego zignorowanie bywa realną przyczyną zepsutego systemu po większej aktualizacji. Jeśli lista jest pusta, świetnie — nic nie przegapiłeś.');
+  html += step(3, 'Sprawdź wolne miejsce na dysku',
+    'df -h /',
+    [
+      '<code>df -h /</code> — pokazuje ilość wolnego miejsca na głównym dysku w czytelnych jednostkach (<code>-h</code> = „human-readable", czyli w GB zamiast bajtów).',
+      'Kompilacja większych pakietów (jądro, przeglądarka) potrafi tymczasowo zająć kilka–kilkanaście GB w <code>/var/tmp/portage</code>, zanim gotowy pakiet trafi na swoje miejsce.'
+    ]);
+  html += step(4, 'Zobacz podgląd tego, co się zmieni — bez instalowania czegokolwiek',
+    'sudo emerge -avuDN @world --pretend',
+    [
+      '<code>--pretend</code> (skrót: <code>-p</code>) — tryb podglądu: Portage tylko pokazuje plan, nic realnie nie instaluje ani nie kompiluje.',
+      '<code>-v</code> — verbose, pokazuje więcej szczegółów przy każdym pakiecie (m.in. zmiany flag USE).',
+      '<code>-u</code> — aktualizuje pakiety do najnowszej dozwolonej wersji.',
+      '<code>-D</code> — deep, sprawdza całe drzewo zależności w głąb, nie tylko pakiety zainstalowane bezpośrednio przez Ciebie.',
+      '<code>-N</code> — newuse, dolicza też pakiety, których flagi USE zmieniły się od ostatniej instalacji, nawet jeśli sama wersja się nie zmieniła.',
+      '<code>@world</code> — specjalny „zestaw" oznaczający wszystko, co świadomie zainstalowałeś, plus ich zależności — czyli praktycznie cały Twój system.'
+    ],
+    'Warto przejrzeć wyświetloną listę: czy nie ma tam czegoś nieoczekiwanego, np. dużego pakietu, którego akurat nie planowałeś ruszać.');
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🚀 Faza II — jak aktualizować</h2>';
+  html += step(5, 'Uruchom właściwą aktualizację',
+    'sudo emerge -avuDN @world',
+    [
+      'Dokładnie ta sama komenda co w Kroku 4, tylko bez <code>--pretend</code> — teraz faktycznie się wykona.',
+      'Portage wyświetli tę samą listę co przy podglądzie i zapyta „Would you like to merge these packages? [Yes/No]" — wpisz <code>y</code> i <code>Enter</code>, żeby zatwierdzić (to właśnie robi flaga <code>-a</code> — pyta o potwierdzenie).',
+      'Pakiety kompilowane (jak <code>sys-kernel/gentoo-kernel</code> z sekcji 6) zostaną skompilowane od nowa z ustawieniami z <code>make.conf</code> (<code>-march=native</code> itd.) i tą samą zapisaną konfiguracją (<code>savedconfig</code>). Pakiety binarne (jak <code>gentoo-kernel-bin</code>) po prostu pobiorą nowszą gotową wersję — patrz ramka wyżej.'
+    ]);
+  html += step(6, 'Jeśli Portage prosi o rozwiązanie konfliktu flag USE (opcjonalnie)',
+    'sudo emerge -avuDN @world --autounmask-write\nsudo etc-update',
+    [
+      'Czasem aktualizacja jednego pakietu wymaga włączenia lub wyłączenia flagi USE w innym — Portage to wykrywa i pokazuje wyraźny, zwykle czerwony komunikat z proponowaną zmianą zamiast po prostu kontynuować.',
+      '<code>--autounmask-write</code> — każe Portage samodzielnie dopisać proponowane zmiany do plików w <code>/etc/portage/</code>, zamiast tylko o nich informować w terminalu.',
+      '<code>sudo etc-update</code> — otwiera krótkie, interaktywne menu, w którym zatwierdzasz te automatycznie przygotowane zmiany (zwykle wybierając opcję zamiany na nowe pliki). Bez tego kroku zmiany z <code>--autounmask-write</code> zostają tylko jako propozycje na dysku, a nie realnie obowiązujące ustawienia.'
+    ],
+    'Po zatwierdzeniu zmian po prostu uruchom jeszcze raz komendę z Kroku 5.');
+  html += step(7, 'Jeśli aktualizacja się przerwie (zanik prądu, zawieszenie się czegoś)',
+    'sudo emerge --resume',
+    [
+      'Wznawia dokładnie od miejsca, w którym proces się przerwał, zamiast od nowa przechodzić przez całą listę pakietów.'
+    ]);
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">✅ Faza III — po aktualizacji</h2>';
+  html += step(8, 'Scal zaktualizowane pliki konfiguracyjne',
+    'sudo etc-update',
+    [
+      'Kiedy pakiet zmienia swój domyślny plik konfiguracyjny w <code>/etc</code>, a Ty masz tam już własne zmiany, Portage <b>nie</b> nadpisuje Twojego pliku automatycznie — zamiast tego zostawia obok nową, proponowaną wersję (plik zaczynający się od <code>._cfg0000_</code>).',
+      '<code>etc-update</code> pokazuje różnice między starym a nowym plikiem i pyta, co zrobić: zostawić swoją wersję, przyjąć nową, czy scalić je ręcznie.'
+    ],
+    'Rób to po każdej większej aktualizacji — zaległe pliki <code>.cfg</code> tylko się kumulują i z czasem łatwo się w nich pogubić. Alternatywa z ładniejszym interfejsem: <code>sudo dispatch-conf</code>.');
+  html += step(9, 'Napraw programy, które nadal używają starych, usuniętych bibliotek',
+    'sudo emerge @preserved-rebuild',
+    [
+      'Kiedy współdzielona biblioteka (np. <code>openssl</code>) dostaje nowszą wersję pod inną nazwą pliku, programy zlinkowane wcześniej ze starą wersją przestałyby normalnie działać po jej usunięciu. Portage w takiej sytuacji tymczasowo „zachowuje" (preserved) starą bibliotekę na dysku, żeby nic się nie wywaliło.',
+      '<code>emerge @preserved-rebuild</code> przebudowuje takie programy pod nowe biblioteki, po czym stare, zachowane wersje można bezpiecznie usunąć w Fazie IV.'
+    ],
+    'Jeśli polecenie odpowie „Nothing to rebuild" — świetnie, nic nie zostało osierocone.');
+  html += step(10, 'Zrestartuj komputer, jeśli zaktualizowało się jądro',
+    'sudo reboot',
+    [
+      'Nowe jądro (np. świeżo skompilowany <code>gentoo-kernel</code> z sekcji 6) zacznie realnie działać dopiero po restarcie — do tego momentu nadal pracujesz na starym, uruchomionym jądrze, mimo że nowe leży już w <code>/boot</code>.',
+      'Po restarcie sprawdź w menu GRUB (patrz sekcja 6), że nowa wersja faktycznie jest na liście i da się nią normalnie wystartować.',
+      'Sprawdź, na jakim jądrze faktycznie teraz pracujesz: <code>uname -r</code>.'
+    ],
+    'Jeśli ta konkretna aktualizacja nie objęła jądra, ten krok możesz spokojnie pominąć.');
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🧹 Faza IV — sprzątanie systemu</h2>';
+  html += step(11, 'Zobacz, co można bezpiecznie usunąć — najpierw tylko podgląd',
+    'sudo emerge --depclean --pretend',
+    [
+      '<code>--depclean</code> szuka pakietów, które zostały zainstalowane wyłącznie jako czyjaś zależność, a teraz nikt ich już nie potrzebuje (np. bo odinstalowałeś program, dla którego były wymagane).',
+      '<code>--pretend</code> znów oznacza „tylko pokaż" — <code>depclean</code> bez wcześniejszego podglądu bywa ryzykowny: w rzadkich przypadkach może zasugerować usunięcie czegoś, co jednak jest Ci potrzebne (np. gdy zapomniałeś dopisać pakiet do <code>@world</code> przy jego instalacji).'
+    ],
+    'Przejrzyj listę uważnie. Jeśli widzisz tam coś, co na pewno chcesz zachować, dopisz to jawnie do <code>@world</code>: <code>sudo emerge --noreplace --select nazwa/pakietu</code>, i uruchom podgląd jeszcze raz.');
+  html += step(12, 'Faktycznie posprzątaj',
+    'sudo emerge --depclean',
+    [
+      'Ta sama operacja co w Kroku 11, tym razem bez <code>--pretend</code> — realnie usuwa zbędne pakiety.'
+    ]);
+  html += step(13, 'Wyczyść stare wersje jądra i pliki pobrane podczas kompilacji',
+    'sudo eclean-kernel\nsudo eclean distfiles\nsudo eclean packages',
+    [
+      '<code>eclean-kernel</code> — usuwa stare, nieużywane już wersje jądra z <code>/boot</code> i <code>/lib/modules</code> (dokładnie ten sam mechanizm, o którym mowa w sekcji 6).',
+      '<code>eclean distfiles</code> — czyści <code>/var/cache/distfiles</code>: archiwa źródłowe pobrane podczas kompilacji pakietów, które od dawna zastąpiły już nowsze wersje.',
+      '<code>eclean packages</code> — czyści <code>/var/cache/binpkgs</code>: stare paczki binarne, w tym te tworzone automatycznie przy każdej kompilacji, jeśli masz włączone <code>FEATURES="buildpkg"</code>.'
+    ],
+    'Wszystkie trzy polecenia pochodzą z pakietu <code>app-portage/gentoolkit</code> — jeśli go nie masz, zainstaluj najpierw: <code>sudo emerge app-portage/gentoolkit</code>.');
+  html += step(14, 'Zaktualizuj menu rozruchowe GRUB',
+    'sudo grub-mkconfig -o /boot/grub/grub.cfg',
+    [
+      'Tak samo jak w sekcji 6 — odświeża listę jąder w menu startowym, żeby zniknęły z niego wpisy do wersji, które właśnie usunąłeś w Kroku 13.'
+    ]);
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🟢 Faza V — jeśli oprócz Portage używasz nvm (Node.js)</h2>';
+  html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ten krok dotyczy Cię <b>tylko</b>, jeśli sam zainstalowałeś <a href="https://github.com/nvm-sh/nvm" target="_blank" rel="noopener">nvm</a> (Node Version Manager) do zarządzania Node.js — np. do pracy/nauki programowania. To narzędzie jest całkowicie osobne od Portage: nie ma z nim nic wspólnego, nie jest pakietem Gentoo i emerge o nim nie wie.</p>';
+  html += step(15, 'Zaktualizuj Node.js do najnowszego LTS przez nvm, przenosząc swoje globalne pakiety',
+    'nvm install --lts --reinstall-packages-from=current',
+    [
+      '<code>nvm</code> — menedżer wersji Node.js działający wyłącznie w Twoim koncie użytkownika (instaluje wersje do <code>~/.nvm/versions/node/</code>). To zupełnie inny mechanizm niż Portage: nie kompiluje niczego z <code>make.conf</code>, nie zapisuje się w bazie pakietów <code>emerge -p @world</code> i nie pojawi się w żadnym z kroków Fazy I–IV powyżej.',
+      '<code>install --lts</code> — pobiera i instaluje najnowszą wersję Node.js z gałęzi LTS (Long Term Support, czyli długoterminowego wsparcia) — gotowy, prekompilowany build pobrany z serwerów Node.js, a nie zbudowany lokalnie.',
+      '<code>--reinstall-packages-from=current</code> — zanim przełączy Cię na nową wersję, nvm spisuje listę pakietów npm zainstalowanych <i>globalnie</i> (flagą <code>-g</code>) w wersji Node, na której właśnie pracujesz („current"), a następnie instaluje te same pakiety od nowa pod nową wersją. Bez tej flagi nowa wersja Node startowałaby całkowicie „pusta", bez żadnych globalnych narzędzi (np. <code>npm install -g</code> instalowanych wcześniej CLI-ów typu <code>eslint</code>, <code>typescript</code>, <code>pnpm</code> itp.) — musiałbyś instalować je ręcznie jeden po drugim.'
+    ],
+    'To polecenie nie dotyka projektów w konkretnych folderach — jeśli jakiś projekt ma swój lokalny <code>node_modules</code>, ten pozostaje bez zmian; przenoszone są tylko pakiety instalowane globalnie.');
+  html += '<div class="note" style="font-size:.85rem"><b>Konsekwencje, o których warto wiedzieć:</b><br><br>'
+    + '<b>1. Stara wersja Node nie znika sama.</b> Zostaje na dysku pod <code>~/.nvm/versions/node/&lt;stara-wersja&gt;</code> i dalej zajmuje miejsce, dopóki jej ręcznie nie usuniesz: <code>nvm uninstall &lt;stara-wersja&gt;</code> (numer starej wersji zobaczysz poleceniem <code>nvm ls</code>).<br><br>'
+    + '<b>2. Nowa wersja nie musi stać się domyślna automatycznie.</b> Samo polecenie przełącza Cię na nową wersję w <i>bieżącej</i> sesji terminala, ale nowo otwierane terminale mogą dalej startować ze starą, jeśli masz gdzieś ustawiony inny alias domyślny. Żeby to ustawić na stałe: <code>nvm alias default \'lts/*\'</code>.<br><br>'
+    + '<b>3. Pakiety z natywnymi dodatkami (native addons) mogą wymagać ponownej kompilacji.</b> Część pakietów npm (te korzystające z <code>node-gyp</code>, np. sterowniki do baz danych czy narzędzia do przetwarzania obrazów) zawiera skompilowany kod C/C++ dowiązany do konkretnej wersji Node. Reinstalacja pod nową wersję automatycznie je przebudowuje — ale do tego potrzebne są w systemie standardowe narzędzia kompilacyjne (<code>sys-devel/gcc</code>, <code>make</code>, <code>python</code>), które na Gentoo z reguły już masz z racji kompilowania innych pakietów przez Portage.<br><br>'
+    + '<b>4. To nie wpływa na ewentualny <code>dev-lang/nodejs</code> zainstalowany przez Portage.</b> Jeśli oprócz nvm masz też systemowy Node.js zainstalowany przez <code>emerge</code>, oba żyją obok siebie niezależnie — to, którego faktycznie używa dana komenda <code>node</code> w terminalu, zależy wyłącznie od kolejności w zmiennej <code>PATH</code> (nvm zwykle dopisuje się na początek, więc „wygrywa", gdy jest załadowany w danej sesji powłoki).<br><br>'
+    + '<b>Jak sprawdzić, że wszystko się udało:</b> <code>node -v</code> i <code>npm -v</code> (powinny pokazać nową wersję), <code>npm list -g --depth=0</code> (lista przeniesionych globalnych pakietów) oraz <code>nvm ls</code> (przegląd wszystkich zainstalowanych przez nvm wersji, z gwiazdką przy aktywnej).</div>';
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🔧 Faza VI — typowe problemy podczas dużej aktualizacji i jak je rozwiązać</h2>';
+  html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ta faza to zbiór realnych sytuacji, które potrafią się przytrafić przy większej aktualizacji <code>@world</code> — nie za każdym razem, ale wystarczająco często, żeby mieć je pod ręką. Każda ma swoją przyczynę i konkretne, bezpieczne rozwiązanie, wyjaśnione krok po kroku tak samo dokładnie jak reszta tej ściągawki.</p>';
+
+  html += step(16, 'Błąd „circular dependencies" przy aktualizacji GCC (kompilator „zależy sam od siebie")',
+    'emerge --ask --binpkg-respect-use=n sys-devel/gcc\nsudo emerge --ask --update --deep --newuse --exclude sys-devel/gcc @world',
+    [
+      'Co oznacza ten błąd: Portage czasem zgłasza, że <code>sys-devel/gcc</code> (kompilator) jest sam swoją własną zależnością potrzebną do zbudowania („depends on itself (buildtime)"). To nie oznacza zepsutego systemu — to znany, powtarzalny efekt uboczny sposobu, w jaki paczka GCC jest budowana (kompilator bywa używany do budowania własnych bibliotek pomocniczych), w połączeniu z tym, że dostępna paczka binarna ma nieco inne flagi USE (np. <code>lto</code>, <code>pgo</code>) niż te ustawione w Twoim systemie, więc Portage odrzuca binarkę i próbuje kompilować ze źródeł — a to właśnie wtedy ujawnia pętlę.',
+      '<code>--binpkg-respect-use=n</code> — mówi Portage: „zignoruj drobne różnice we flagach USE i po prostu weź gotową paczkę binarną GCC zamiast kompilować ją od zera". Ponieważ paczka binarna nie ma tego problemu z zależnością samą do siebie, instaluje się w kilka–kilkanaście sekund i od razu rozwiązuje pętlę.',
+      '<code>--exclude sys-devel/gcc</code> — używane w drugiej komendzie, przy głównej aktualizacji <code>@world</code>: mówi Portage, żeby pominęło pakiet GCC podczas tego przebiegu (skoro dopiero co zainstalowałeś jego aktualną wersję ręcznie w poprzednim kroku), zamiast próbować go „odświeżyć" ponownie i znowu wpaść w tę samą pętlę.'
+    ],
+    'Kolejność ma znaczenie: najpierw zainstaluj/zaktualizuj sam GCC (pierwsza komenda), dopiero potem uruchom resztę aktualizacji z pominięciem GCC (druga komenda). Jeśli w kolejnej aktualizacji systemu (za tydzień, miesiąc) błąd się powtórzy — to normalne, wykonaj te same dwie komendy jeszcze raz.');
+
+  html += step(17, 'Kompilacja „wisi" bardzo długo (Node.js, Firefox, GCC, LibreOffice, Chromium, KDE Plasma…)',
+    'top',
+    [
+      'Otwórz <b>drugi</b> terminal (albo drugą kartę), zaloguj się i uruchom <code>top</code> (lub czytelniejszy <code>htop</code>, jeśli masz zainstalowany: <code>sudo emerge app-admin/htop</code>).',
+      'Patrz na proces <code>cc1plus</code> (kompilator C++) lub <code>make</code>/<code>ld</code> na samej górze listy — jeśli zużywa blisko 100% jednego rdzenia CPU, kompilacja żyje i pracuje normalnie, nawet jeśli na ekranie nic się nie zmienia przez długi czas.',
+      'Sprawdź też zużycie pamięci RAM (druga linijka w <code>top</code>) — powolne, stopniowe zmiany są normalne; nagły brak wolnej pamięci i „zamrożenie" CPU na 0% to sygnał realnego problemu (patrz niżej).'
+    ],
+    'To nie jest awaria — to specyfika Gentoo: pewne „molochy" (Node.js z silnikiem V8, Firefox, Chromium, LibreOffice, GCC, KDE Plasma) zawierają miliony linii kodu C/C++ i potrafią kompilować się od kilkunastu minut do nawet kilku godzin, zwłaszcza na słabszym sprzęcie (jak Celeron w X202EP). Zdecydowana większość codziennych aktualizacji to jednak małe pakiety kompilujące się w kilka–kilkadziesiąt sekund. Nie przerywaj kompilacji (<code>Ctrl+C</code>) tylko dlatego, że długo trwa — przerwanie oznacza start tego pakietu od zera przy następnej próbie.');
+
+  html += step(18, 'Krok 11 (<code>emerge --depclean --pretend</code>) odmawia działania: „Dependencies could not be completely resolved"',
+    'sudo emerge --ask --update --newuse --deep --with-bdeps=y @world',
+    [
+      'Ten komunikat to zabezpieczenie: zanim Portage zgodzi się policzyć, co bezpiecznie usunąć, chce mieć pewność, że wszystkie zależności w systemie (łącznie z tzw. zależnościami czasu budowania) są w pełni spójne — inaczej ryzykowałby usunięcie czegoś, co jeszcze jest gdzieś potrzebne.',
+      '<code>--with-bdeps=y</code> — każe Portage doliczyć również „build-time dependencies" (bdeps), czyli pakiety potrzebne tylko w trakcie kompilowania innych pakietów (np. brakujący pakiet językowy do Firefoxa albo biblioteka pomocnicza do Node.js) — to zwykle właśnie one powodują ten komunikat, gdy zostały pominięte przy jakiejś wcześniejszej, częściowej aktualizacji.'
+    ],
+    'Gdy ta komenda zakończy się bez błędów, wróć do Kroku 11 z Fazy IV (<code>emerge --ask --depclean --pretend</code>) — tym razem powinien przejść bez skarg.');
+
+  html += step(19, 'Chcesz usunąć jedną konkretną, starą wersję pakietu, a proste <code>--unmerge</code> jej „nie widzi"',
+    'qlist -Iv nazwa-pakietu\nsudo emerge --ask --verbose --unmerge =pelna/nazwa-pakietu-wersja',
+    [
+      '<code>qlist -Iv nazwa-pakietu</code> (z pakietu <code>app-portage/portage-utils</code> — jeśli go nie masz: <code>sudo emerge app-portage/portage-utils</code>) — wypisuje dokładne, pełne nazwy i wersje wszystkich zainstalowanych pakietów pasujących do podanego fragmentu nazwy, łącznie z ewentualnymi dopiskami rewizji. Portage bywa wybredne co do dokładnego zapisu wersji, więc zgadywanie „na oko" (np. wpisanie tylko <code>7.1.6</code>, gdy takiej wersji w ogóle nie ma zainstalowanej, a jest np. <code>7.1.5</code>) kończy się komunikatem „Couldn\'t find … to unmerge".',
+      'Znak <code>=</code> przed nazwą pakietu — mówi Portage: usuń <b>dokładnie</b> tę jedną, konkretną wersję, a nie jakąkolwiek inną pasującą do tej samej nazwy pakietu (zabezpiecza to np. przed przypadkowym odinstalowaniem najnowszego, używanego jądra zamiast starego).'
+    ],
+    'To ręczna metoda zapasowa — na co dzień do porządkowania starych wersji jądra wystarczy <code>eclean-kernel</code> z Kroku 13 w Fazie IV; sięgaj po <code>qlist</code> + <code>=…</code> tylko wtedy, gdy automatyczne narzędzie nie objęło jakiejś konkretnej, nietypowej wersji.');
+
+  html += step(20, 'GRUB dalej pokazuje w menu stare jądro, mimo że jego pakiet już odinstalowałeś',
+    'uname -r\nls -l /boot\nsudo rm -f /boot/*STARA-WERSJA*\nsudo grub-mkconfig -o /boot/grub/grub.cfg',
+    [
+      '<code>uname -r</code> — <b>zawsze wykonaj ten krok jako pierwszy i zapamiętaj wynik.</b> To wersja jądra, na którym aktualnie pracujesz — jej pod żadnym pozorem nie usuwaj, bo to jak wyjęcie fundamentu spod działającego systemu.',
+      '<code>ls -l /boot</code> — pokazuje pliki każdego zainstalowanego jądra: <code>vmlinuz-WERSJA</code> (obraz jądra), <code>initramfs-WERSJA.img</code> (obraz startowy), <code>config-WERSJA</code> (użyta konfiguracja) oraz <code>System.map-WERSJA</code> (mapa symboli) — sprawdź dokładnie, jak nazywa się wersja, którą chcesz usunąć.',
+      '<code>rm -f /boot/*STARA-WERSJA*</code> — usuwa wszystkie cztery powyższe pliki naraz dla wskazanej (i tylko wskazanej) wersji, podmieniając <code>STARA-WERSJA</code> na dokładny numer z listy wyżej, np. <code>*7.1.6-gentoo-gentoo-dist-bin*</code>.'
+    ],
+    'Dzieje się tak zwykle wtedy, gdy pakiet jądra został odinstalowany przez <code>emerge --unmerge</code>, ale z jakiegoś powodu mechanizm <code>installkernel</code> nie posprzątał plików w <code>/boot</code> automatycznie. Po ręcznym usunięciu plików i odświeżeniu GRUB-a wpis na starcie komputera zniknie na dobre.');
+
+  html += step(21, 'Błąd „Unable to find kernel sources at /usr/src/linux" przy kompilacji innych pakietów',
+    'ls -l /usr/src/\nsudo ln -sfn linux-WERSJA-gentoo /usr/src/linux',
+    [
+      'Niektóre pakiety (np. <code>net-libs/nodejs</code>, <code>x11-drivers/nvidia-drivers</code>, moduły VirtualBox czy WireGuard) przy kompilacji zaglądają do <code>/usr/src/linux</code> — to specjalny link symboliczny, który z założenia ma zawsze wskazywać na źródła jądra, z którym aktualnie pracujesz. Po instalacji nowego jądra ten link czasem nie aktualizuje się sam.',
+      '<code>ls -l /usr/src/</code> — pokaże Ci, na co obecnie wskazuje link <code>linux</code> oraz jakie wersje źródeł jądra (foldery <code>linux-WERSJA-gentoo</code>) masz w ogóle zainstalowane.',
+      '<code>ln -sfn linux-WERSJA-gentoo /usr/src/linux</code> — <code>ln -s</code> tworzy link symboliczny, flaga <code>-f</code> nadpisuje istniejący link bez pytania, a <code>-n</code> zabezpiecza przed nietypowym zachowaniem, gdy cel jest już linkiem/katalogiem. Podmień <code>WERSJA</code> na dokładną nazwę folderu widoczną w <code>/usr/src/</code> (najlepiej tę odpowiadającą jądru z <code>uname -r</code>).'
+    ],
+    'Po naprawieniu linku po prostu uruchom ponownie tę samą komendę <code>emerge</code>, która wcześniej zgłosiła błąd — teraz powinna przejść bez przeszkód.');
+
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+/* ======================= GŁÓWNY RENDER ZAKŁADKI ======================= */
+
+function renderLaptopTab(laptopId){
+  const laptop = LAPTOPS[laptopId];
+  const kernels = kernelsInWindow();
+  const latest = getLatestStable();
+  const lts = getCurrentLTS();
+  const container = document.getElementById('tab-'+laptopId);
+
+  const selectedKernel = (container.dataset.selected) || (lts ? lts.cycle : kernels[0].cycle);
+
+  let html = specTable(laptop);
+  html += kernelSelectorHtml(laptopId, kernels, latest, lts, selectedKernel);
+  html += componentsHtml(laptop, selectedKernel, latest, lts);
+  html += sideBySideCardHtml(laptopId, kernels, latest,
+    kernels[kernels.length-1].cycle, latest.cycle);
+  html += kernelConfigCardHtml(laptop);
+  html += compileCardHtml(laptop);
+  html += dualKernelGuideHtml(laptop);
+  html += checkScriptCardHtml(laptop);
+
+  container.innerHTML = html;
+  container.dataset.selected = selectedKernel;
+
+  const metaEl = document.getElementById('kernel-meta-'+laptopId);
+  const src = usingFallback
+    ? 'Dane offline (zapasowe, zrzut z '+FALLBACK_SNAPSHOT_DATE+') — nie udało się połączyć z internetem. Kliknij "Odśwież listę jąder", aby spróbować ponownie.'
+    : 'Dane pobrane na żywo z endoflife.date/kernel.org o '+(fetchTimestamp?fetchTimestamp.toLocaleString('pl-PL'):'')+'. Lista obejmuje wydania z ostatnich 2 lat (dziś: '+new Date().toLocaleDateString('pl-PL')+').';
+  metaEl.innerHTML = src + (latest?'<br>Najnowsze stabilne: <b>'+latest.cycle+'</b> ('+latest.releaseDate+'). Obecne LTS: <b>'+(lts?lts.cycle:'?')+'</b> ('+(lts?lts.releaseDate:'')+').':'');
+}
+
+function onKernelChange(laptopId, value){
+  document.getElementById('tab-'+laptopId).dataset.selected = value;
+  renderLaptopTab(laptopId);
+}
+
+async function refreshKernels(){
+  await loadKernels();
+  renderLaptopTab('tuf');
+  renderLaptopTab('x202ep');
+}
+
+/* ======================= ZAKŁADKI GŁÓWNE ======================= */
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ======================= START ======================= */
+
+(async function init(){
+  document.getElementById('tab-tuf').innerHTML = '<div class="card">Ładowanie listy jąder…</div>';
+  document.getElementById('tab-x202ep').innerHTML = '<div class="card">Ładowanie listy jąder…</div>';
+  await loadKernels();
+  renderLaptopTab('tuf');
+  renderLaptopTab('x202ep');
+  renderUpdateTab();
+})();
+</script>
+</body>
+</html>
