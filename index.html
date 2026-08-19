@@ -282,7 +282,7 @@
   <a href="https://endoflife.date/linux" target="_blank">endoflife.date</a> (pobierane na żywo przy każdym otwarciu strony).
   Nazwy opcji <code>CONFIG_*</code> zweryfikowane względem Linux Kernel Driver Database i dokumentacji jądra — mimo to zawsze zweryfikuj
   je w <code>make menuconfig</code> na docelowej wersji, bo pojedyncze nazwy symboli potrafią się zmieniać między wydaniami.
-  Ostatnia aktualizacja treści strony: 2026-08-13.
+  Ostatnia aktualizacja treści strony: 2026-08-19.
 
   <!-- ===== social-links-component.html — rząd ikon ===== -->
   <ul class="social-links" style="margin-top:16px">
@@ -476,7 +476,7 @@ tuf: {
     ],
     packageUse:[
       ['x11-drivers/nvidia-drivers', 'X ${jeśli używasz X11} kernel-open ${dla nowszych GPU}', 'Własnościowy sterownik NVIDIA obsługujący Ampere (RTX 3050). Sprawdź w Portage, która gałąź (np. 5xx) wspiera Twoją kartę i jest kompatybilna z wybranym jądrem, zanim je zaktualizujesz.'],
-      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) używane tylko przejściowo do wygenerowania konfiguracji dla gentoo-kernel, nie jako główne jądro.'],
+      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) to Twoje GŁÓWNE, ręcznie kompilowane jądro (tak jak realny 7.2.0-gentoo-tuf).'],
       ['sys-power/asusctl', '', 'Sterowanie RGB klawiatury, profilami wydajności i progiem ładowania baterii — narzędzie społeczności asus-linux (spoza głównego drzewa Portage, wymaga overlay np. GURU).'],
       ['sys-power/supergfxctl', '', 'Przełączanie trybów graficznych (hybrydowy / dGPU / tylko iGPU) na laptopach z Optimus.'],
       ['app-laptop/tlp', 'NetworkManager', 'Zarządzanie energią — sensowny dodatek do intel_pstate/platform_profile dla dłuższej pracy na baterii.'],
@@ -594,7 +594,7 @@ x202ep: {
       ]},
     ],
     packageUse:[
-      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) używane tylko przejściowo do wygenerowania konfiguracji; na tym CPU rozważ uważnie czas kompilacji, gentoo-kernel-bin bywa praktyczniejszy jako jedyne jądro.'],
+      ['sys-kernel/gentoo-sources', '', 'Źródła jądra — w przewodniku niżej (sekcja 6) to GŁÓWNE, ręcznie kompilowane jądro; na tym CPU rozważ jednak uważnie czas kompilacji (patrz sekcja 5) — gentoo-kernel-bin bywa praktyczniejszy jako jedyne jądro, jeśli nie chce Ci się czekać.'],
       ['sys-power/tlp', '', 'Zarządzanie energią — na starej platformie z małą baterią (24 Wh) realnie wydłuża czas pracy.'],
       ['x11-drivers/xf86-video-intel (opcjonalnie)', '', 'Starszy, dedykowany sterownik X11 dla Intela — na tak starym GPU bywa czasem stabilniejszy niż domyślny modesetting, warto przetestować oba.'],
     ],
@@ -892,7 +892,7 @@ function runSideBySide(laptopId){
 
 function kernelConfigCardHtml(laptop){
   let html = '<div class="card"><h2>4. Generator rekomendowanej konfiguracji jądra (.config) i Gentoo</h2>';
-  html += '<p style="color:var(--muted);font-size:.86rem;margin-top:-4px">Punkt startowy do <code>make menuconfig</code> / <code>make nconfig</code> (lub <code>/etc/portage/savedconfig/sys-kernel/gentoo-kernel</code>). To checklista opcji krytycznych dla tego laptopa, nie pełna, gotowa konfiguracja — resztę (filesystemy, sieć ogólną itd.) dobierz jak zwykle, np. przez <code>make localmodconfig</code> uruchomiony już na Gentoo na tym sprzęcie.</p>';
+  html += '<p style="color:var(--muted);font-size:.86rem;margin-top:-4px">Punkt startowy do <code>make menuconfig</code> / <code>make nconfig</code> uruchomionego w <code>/usr/src/linux</code> (patrz sekcja 6). To checklista opcji krytycznych dla tego laptopa, nie pełna, gotowa konfiguracja — resztę (filesystemy, sieć ogólną itd.) dobierz jak zwykle, np. przez <code>make localmodconfig</code> uruchomiony już na Gentoo na tym sprzęcie.</p>';
 
   laptop.kernelConfig.groups.forEach(g=>{
     html += '<h3 style="margin-top:16px">'+g.title+'</h3><table class="cfg"><thead><tr><th style="width:38%">Opcja Kconfig</th><th>Po co</th></tr></thead><tbody>';
@@ -957,13 +957,13 @@ function compileCardHtml(laptop){
   }
 
   html += '<h3 style="margin-top:20px">Trzy drogi instalacji jądra w Gentoo</h3>';
-  html += '<p style="font-size:.86rem;color:var(--muted)">To częsty punkt zamieszania: „gentoo-sources” to nie jedyna droga do własnej kompilacji. Dystrybucyjny pakiet <code>gentoo-kernel</code> też się kompiluje lokalnie (więc też korzysta z <code>-march=native</code>), ale robi to w dużej mierze automatycznie — stąd sensowne połączenie „szybko jak binarka, szyte na miarę jak źródła” użyte w sekcji 6.</p>';
+  html += '<p style="font-size:.86rem;color:var(--muted)">To częsty punkt zamieszania: „gentoo-sources” to nie jedyna droga do własnej kompilacji. Dystrybucyjny pakiet <code>gentoo-kernel</code> też się kompiluje lokalnie (więc też korzysta z <code>-march=native</code>), ale robi to w dużej mierze automatycznie. W tym przewodniku (sekcja 6) głównym jądrem jest klasyczne, ręcznie kompilowane <code>gentoo-sources</code> — pełna kontrola nad każdą opcją <code>.config</code> — z <code>gentoo-kernel-bin</code> jako zapasowym, żeby zawsze dało się bezpiecznie wystartować nawet po nieudanej kompilacji.</p>';
   html += '<table class="compare-table"><thead><tr><th></th><th>sys-kernel/gentoo-sources</th><th>sys-kernel/gentoo-kernel</th><th>sys-kernel/gentoo-kernel-bin</th></tr></thead><tbody>'
     + '<tr><td><b>Co to jest</b></td><td>Same źródła — Ty ręcznie konfigurujesz (menuconfig) i kompilujesz</td><td>Zautomatyzowany pakiet dystrybucyjny — kompiluje się lokalnie, ale sam ogarnia initramfs, instalację do /boot, hooki</td><td>Gotowy, prekompilowany pakiet binarny jądra</td></tr>'
-    + '<tr><td><b>Optymalizacja pod CPU</b></td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, ręcznie dobrane sterowniki</td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, konfiguracja z <code>USE=savedconfig</code> (patrz sekcja 6)</td><td><span class="pill no">NIE</span> — generyczny <code>x86-64</code>, szeroki zestaw modułów dla kompatybilności</td></tr>'
-    + '<tr><td><b>Czas instalacji/aktualizacji</b></td><td>Długi, w pełni ręczny</td><td>Długi (kompilacja), ale automatyczny — nowe jądro buduje się samo przy <code>emerge --update</code></td><td>Sekundy — samo pobranie i rozpakowanie</td></tr>'
-    + '<tr><td><b>Kontrola nad .config</b></td><td>Pełna, ręczna za każdym razem</td><td>Pełna, ale zapisana raz jako <code>savedconfig</code> i używana automatycznie przy kolejnych wersjach</td><td>Brak — dostajesz to, co przygotowali maintainerzy</td></tr>'
-    + '<tr><td><b>Zalecane w tym przewodniku</b></td><td>Opcja dla purystów / do nauki — sekcja 6 jej nie używa</td><td><span class="pill yes">GŁÓWNE jądro</span> — patrz sekcja 6</td><td><span class="pill yes">ZAPASOWE jądro</span> — patrz sekcja 6</td></tr>'
+    + '<tr><td><b>Optymalizacja pod CPU</b></td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, ręcznie dobrane sterowniki</td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, konfiguracja z <code>USE=savedconfig</code></td><td><span class="pill no">NIE</span> — generyczny <code>x86-64</code>, szeroki zestaw modułów dla kompatybilności</td></tr>'
+    + '<tr><td><b>Co robi zwykłe <code>emerge --update @world</code></b></td><td>Tylko pobiera/rozpakowuje nowsze źródła do <code>/usr/src/linux-&lt;wersja&gt;</code> — <b>samo jądro się nie przebudowuje</b>, to zawsze osobny, ręczny krok (patrz sekcja 6 i „Ściągawka: aktualizacja systemu”, Krok 10)</td><td>Kompiluje nowe jądro samo, od razu przy aktualizacji — bez dodatkowych kroków</td><td>Pobiera gotową, nowszą binarkę — sekundy</td></tr>'
+    + '<tr><td><b>Kontrola nad .config</b></td><td>Pełna, ręczna za każdym razem (Ty pilnujesz kopii zapasowej — patrz sekcja 6)</td><td>Pełna, ale zapisana raz jako <code>savedconfig</code> i używana automatycznie przy kolejnych wersjach</td><td>Brak — dostajesz to, co przygotowali maintainerzy</td></tr>'
+    + '<tr><td><b>Zalecane w tym przewodniku</b></td><td><span class="pill yes">GŁÓWNE jądro</span> — patrz sekcja 6 (tak masz skonfigurowany TUF-a: <code>7.2.0-gentoo-tuf</code>)</td><td>Alternatywa w pełni automatyczna — nieużywana w sekcji 6, ale sensowna, jeśli wolisz mniej ręcznej pracy kosztem odrobiny kontroli</td><td><span class="pill yes">ZAPASOWE jądro</span> — patrz sekcja 6</td></tr>'
     + '</tbody></table>';
 
   html += '</div>';
@@ -997,26 +997,20 @@ function dualKernelGuideHtml(laptop){
   const r = calcMakeopts(c.threads, c.ramGB);
   const isTuf = laptop.id === 'tuf';
 
-  let html = '<div class="card"><h2>6. Instrukcja krok po kroku: dwa jądra na raz (zoptymalizowane + zapasowe binarne)</h2>';
-  html += '<p style="font-size:.87rem;color:var(--muted);margin-top:-4px">Idea: trzymasz w systemie <b>dwa</b> jądra jednocześnie. Główne — skompilowane specjalnie pod '+laptop.name+' (<code>sys-kernel/gentoo-kernel</code> z <code>-march=native</code>), więc potencjalnie szybsze i lżejsze. Oraz zapasowe — gotowe, binarne (<code>sys-kernel/gentoo-kernel-bin</code>), które zawsze się uruchomi, nawet jeśli coś pójdzie nie tak przy aktualizacji tego pierwszego. Menu rozruchowe GRUB pozwala wybrać, z którego skorzystać przy starcie — więc nic nie ryzykujesz. Każde polecenie niżej jest wyjaśnione linijka po linijce.</p>';
+  let html = '<div class="card"><h2>6. Instrukcja krok po kroku: dwa jądra na raz (własnoręcznie skompilowane + zapasowe binarne)</h2>';
+  html += '<p style="font-size:.87rem;color:var(--muted);margin-top:-4px">Idea: trzymasz w systemie <b>dwa</b> jądra jednocześnie. Główne — klasyczne <code>sys-kernel/gentoo-sources</code>, ręcznie skonfigurowane (<code>menuconfig</code>/<code>nconfig</code>) i skompilowane specjalnie pod '+laptop.name+' z <code>-march=native</code> — pełna kontrola nad każdą opcją, potencjalnie szybsze i lżejsze. Oraz zapasowe — gotowe, binarne (<code>sys-kernel/gentoo-kernel-bin</code>), które zawsze się uruchomi, nawet jeśli ręczna kompilacja lub konfiguracja pójdzie nie tak. Menu rozruchowe GRUB pozwala wybrać, z którego skorzystać przy starcie — więc nic nie ryzykujesz. Każde polecenie niżej jest wyjaśnione linijka po linijce.'+(isTuf?' Dokładnie tak skonfigurowany jest dziś Twój TUF: główne jądro <code>7.2.0-gentoo-tuf</code> to efekt Kroków 1–6 poniżej.':'')+'</p>';
 
   if(!isTuf){
     html += '<div class="note">Uczciwe zastrzeżenie na start: przy 2 wątkach i 4 GB RAM w X202EP kompilacja własnego jądra (Krok 5) może zająć naprawdę długo (patrz sekcja 5), a zysk wydajności na tak starym CPU jest marginalny. Warto mimo to przejść przez Kroki 1–4 i 6 (są szybkie), a w Kroku 5 po prostu uzbroić się w cierpliwość — albo, jeśli Ci się nie spieszy do posiadania obu jąder, zostać na razie tylko przy <code>gentoo-kernel-bin</code> i wrócić do kompilacji własnego później.</div>';
   }
 
-  html += step(1, 'Powiedz Portage, żeby użył Twojej własnej konfiguracji jądra',
-    'sudo nano /etc/portage/package.use/kernel',
+  html += step(1, 'Zainstaluj źródła jądra i ustaw dowiązanie /usr/src/linux',
+    'sudo emerge --noreplace sys-kernel/gentoo-sources\neselect kernel list\nsudo eselect kernel set <numer>',
     [
-      '<code>sudo</code> — uruchamia polecenie z uprawnieniami administratora (root); bez tego nie zapiszesz pliku w <code>/etc</code>.',
-      '<code>nano</code> — prosty, tekstowy edytor otwierany w terminalu (strzałki do poruszania się, bez myszki).',
-      '<code>/etc/portage/package.use/kernel</code> — plik, w którym Portage trzyma dodatkowe opcje (USE flagi) tylko dla wybranych pakietów — tu: dla jądra.'
-    ]) ;
-  html += '<div class="component"><h4>Wpisz do otwartego pliku dokładnie tę linię</h4><pre>sys-kernel/gentoo-kernel savedconfig initramfs</pre>'
-    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
-    + '<li style="margin-bottom:5px"><code>savedconfig</code> — każe użyć Twojej własnej, wyciętej pod ten laptop konfiguracji z katalogu <code>/etc/portage/savedconfig/</code> zamiast domyślnej.</li>'
-    + '<li style="margin-bottom:5px"><code>initramfs</code> — każe zbudować obraz startowy w RAM (potrzebny, żeby jądro w ogóle zobaczyło dysk '+(isTuf?'NVMe i kartę graficzną':'SATA')+' na starcie). W nowszych wersjach <code>gentoo-kernel</code> ta flaga bywa włączona domyślnie — wpisanie jej jawnie nic nie psuje i jasno pokazuje intencję.</li>'
-    + '</ul>'
-    + '<div class="note">Zapisz plik: <code>Ctrl+O</code>, potem <code>Enter</code>, żeby zatwierdzić nazwę. Wyjdź z edytora: <code>Ctrl+X</code>.</div></div>';
+      '<code>emerge --noreplace sys-kernel/gentoo-sources</code> — pobiera i rozpakowuje źródła jądra do <code>/usr/src/linux-&lt;wersja&gt;-gentoo</code>. To wyłącznie rozpakowanie plików — kompilacja to dopiero Krok 5, Portage jej tu jeszcze nie robi. <code>--noreplace</code> nic nie zrobi, jeśli źródła już masz.',
+      '<code>eselect kernel list</code> — pokazuje wszystkie zainstalowane wersje źródeł jądra i zaznacza gwiazdką, na którą aktualnie wskazuje dowiązanie symboliczne <code>/usr/src/linux</code>.',
+      '<code>eselect kernel set &lt;numer&gt;</code> — przełącza to dowiązanie na wybraną wersję (numer z listy wyżej). Wszystkie kolejne kroki (<code>cd /usr/src/linux</code>) operują właśnie na tej wersji.'
+    ]);
 
   html += step(2, 'Włącz optymalizację pod '+laptop.specGroups[0].rows[0][1].split('(')[0].trim(),
     'sudo nano /etc/portage/make.conf',
@@ -1037,8 +1031,6 @@ function dualKernelGuideHtml(laptop){
     [
       'Zanim zaczniesz — podepnij/włącz wszystko, co jądro ma wykryć: mysz/klawiaturę USB (jeśli używasz), Wi-Fi'+(isTuf?' i Bluetooth':'')+'. <code>make localmodconfig</code> patrzy na to, co aktualnie działa w systemie, więc urządzenia niepodłączone w tym momencie mogą zostać pominięte.'
     ]);
-  html += '<div class="component"><pre>sudo emerge --noreplace sys-kernel/gentoo-sources</pre>'
-    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li>Pobiera źródła jądra — potrzebne tylko na chwilę, żeby wygenerować plik <code>.config</code>, który potem trafi do <code>savedconfig</code>. <code>--noreplace</code> nic nie zrobi, jeśli źródła już masz.</li></ul></div>';
   html += '<div class="component"><pre>cd /usr/src/linux</pre>'
     + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li><code>cd</code> — zmienia bieżący katalog terminala na ten z rozpakowanymi źródłami jądra (Gentoo utrzymuje tam zawsze aktualny dowiązanie <code>/usr/src/linux</code>).</li></ul></div>';
   html += '<div class="component"><pre>sudo make localmodconfig</pre>'
@@ -1054,25 +1046,31 @@ function dualKernelGuideHtml(laptop){
         : '<li style="margin-bottom:5px">Wyszukaj <code>DRM_I915</code> — sterownik Twojej jedynej karty graficznej (Intel HD Graphics 3000).</li>'
           + '<li style="margin-bottom:5px">Wyszukaj Twój sterownik Wi-Fi — <code>ATH9K</code> (Atheros) albo <code>RTL8192CE</code> (Realtek), zależnie od tego, co wykryjesz na swoim egzemplarzu poleceniem <code>lspci -k</code> (patrz sekcja 2).</li>'
           + '<li style="margin-bottom:5px">Wyszukaj <code>HID_MULTITOUCH</code> — obsługa ekranu dotykowego.</li>')
+    + '<li style="margin-bottom:5px">Wyszukaj <code>LOCALVERSION</code> (sekcja „General setup”) i wpisz tam własny dopisek, np. <code>-'+laptop.id+'</code> — to on trafia na koniec nazwy jądra (dokładnie stąd bierze się np. <code>7.2.0-gentoo-'+laptop.id+'</code>). Dzięki temu w menu GRUB od razu rozróżnisz to jądro od <code>gentoo-kernel-bin</code>.</li>'
     + '<li style="margin-bottom:5px">Na koniec naciśnij <code>F9</code>, żeby zapisać zmiany i wyjść.</li>'
     + '</ul></div>';
 
-  html += step(4, 'Zapisz tę konfigurację jako wzorzec na przyszłość',
-    'sudo mkdir -p /etc/portage/savedconfig/sys-kernel\nsudo cp /usr/src/linux/.config /etc/portage/savedconfig/sys-kernel/gentoo-kernel',
+  html += step(4, 'Zachowaj kopię .config na przyszłość',
+    'sudo mkdir -p /etc/kernels\nsudo cp /usr/src/linux/.config /etc/kernels/config-$(uname -r)-backup',
     [
-      '<code>mkdir -p</code> — tworzy katalog docelowy razem z brakującymi katalogami nadrzędnymi (nie zgłosi błędu, jeśli część już istnieje).',
-      '<code>cp</code> — kopiuje przygotowany przed chwilą plik <code>.config</code> pod nazwę, której szuka flaga <code>savedconfig</code> z Kroku 1. Dzięki temu każda kolejna wersja <code>gentoo-kernel</code> automatycznie odziedziczy tę samą, wyciętą pod Twój sprzęt konfigurację — nie robisz Kroku 3 przy każdej aktualizacji.'
+      'Przy klasycznym <code>gentoo-sources</code> nie ma mechanizmu <code>savedconfig</code> (to funkcja tylko pakietu <code>gentoo-kernel</code>) — Ty sam odpowiadasz za to, żeby nie zgubić wyciętej pod ten sprzęt konfiguracji przy kolejnej wersji źródeł.',
+      '<code>mkdir -p</code> — tworzy katalog docelowy razem z brakującymi katalogami nadrzędnymi (nie zgłosi błędu, jeśli już istnieje).',
+      '<code>cp</code> — kopiuje gotowy plik <code>.config</code> pod nazwą z bieżącą wersją jądra, żeby kolejne kopie się nie nadpisywały.',
+      'Przy następnej aktualizacji źródeł (patrz zakładka „Ściągawka: aktualizacja systemu”, Krok 10) skopiujesz ten plik z powrotem do nowego <code>/usr/src/linux/.config</code> i uruchomisz <code>make oldconfig</code> zamiast robić Krok 3 od zera — <code>oldconfig</code> zapyta tylko o nowe opcje, których poprzednia wersja jądra jeszcze nie miała.'
     ]);
 
-  html += step(5, 'Zainstaluj oba jądra i skompiluj to główne',
-    'sudo emerge --noreplace sys-kernel/gentoo-kernel-bin sys-kernel/gentoo-kernel\nsudo emerge -av sys-kernel/gentoo-kernel',
+  html += step(5, 'Zainstaluj jądro zapasowe i skompiluj główne ręcznie',
+    'sudo emerge --noreplace sys-kernel/gentoo-kernel-bin\ncd /usr/src/linux\nsudo make -j'+r.j+'\nsudo make modules_install\nsudo make install',
     [
-      'Pierwsza linia mówi Portage: „chcę mieć w systemie oba pakiety jądra” — <code>--noreplace</code> nic nie nadpisze, jeśli któryś już masz.',
-      'Druga linia faktycznie uruchamia kompilację jądra <code>gentoo-kernel</code> z ustawieniami z Kroków 1–4. <code>-a</code> poprosi o potwierdzenie przed startem (możesz jeszcze się rozmyślić), <code>-v</code> pokaże więcej szczegółów w trakcie budowania.',
+      '<code>emerge --noreplace sys-kernel/gentoo-kernel-bin</code> — instaluje gotowe, binarne jądro zapasowe. <code>--noreplace</code> nic nie nadpisze, jeśli już je masz.',
+      '<code>make -j'+r.j+'</code> — właściwa kompilacja jądra z konfiguracją z Kroków 3–4; liczba <code>-j'+r.j+'</code> to ta sama wartość co <code>MAKEOPTS</code> z Kroku 2 (przy „gołym” <code>make</code>, w odróżnieniu od <code>emerge</code>, <code>MAKEOPTS</code> z <code>make.conf</code> nie stosuje się automatycznie — trzeba ją podać jawnie).',
+      '<code>make modules_install</code> — instaluje skompilowane moduły do <code>/lib/modules/&lt;wersja&gt;</code>.',
+      '<code>make install</code> — kopiuje gotowy obraz jądra (<code>vmlinuz-...</code>) i pliki System.map/config do <code>/boot</code>.',
       isTuf
         ? 'Na TUF-ie (MAKEOPTS -j'+r.j+') to zwykle kilka–kilkanaście minut.'
         : 'Na X202EP (MAKEOPTS -j'+r.j+') licz się z naprawdę długim czasem — to dobry moment na kawę, spacer albo po prostu zostawienie laptopa na noc.'
-    ]);
+    ],
+    'Jeśli w Kroku 3 masz sterowniki potrzebne do zamontowania <code>/</code> (np. dysk po USB/RAID, LUKS) skompilowane jako moduły, a nie wbudowane na stałe — doinstaluj wcześniej generator initramfs, np. <code>sudo emerge sys-kernel/genkernel</code> i uruchom <code>sudo genkernel --install initramfs</code> po <code>make install</code>. Na typowym, prostym układzie dysku (jak w tym przewodniku) initramfs nie jest wymagany.');
 
   html += step(6, 'Zaktualizuj menu rozruchowe GRUB',
     'sudo grub-mkconfig -o /boot/grub/grub.cfg',
@@ -1082,14 +1080,12 @@ function dualKernelGuideHtml(laptop){
 
   html += '<h3 style="margin-top:20px">Obsługa menu GRUB przy starcie</h3>';
   html += '<ul style="font-size:.85rem;padding-left:20px">'
-    + '<li style="margin-bottom:6px"><b>Domyślny start</b> — pierwsza pozycja na samej górze listy to zwykle Twoje świeże, zoptymalizowane pod procesor jądro (<code>gentoo-kernel</code>). Jeśli nic nie zrobisz, ono się uruchomi.</li>'
-    + '<li style="margin-bottom:6px"><b>Uruchomienie zapasowego jądra binarnego</b> — strzałką w dół najedź na „Advanced options for Gentoo Linux” i wciśnij <code>Enter</code>. Z rozwiniętej listy wybierz pozycję kończącą się zwykle na <code>-gentoo-dist</code> (to Twoje <code>gentoo-kernel-bin</code>) i wciśnij <code>Enter</code>. Rób tak zawsze, gdy główne jądro po aktualizacji nie chce się uruchomić.</li>'
+    + '<li style="margin-bottom:6px"><b>Domyślny start</b> — pierwsza pozycja na samej górze listy to zwykle Twoje świeże, ręcznie skompilowane jądro (z dopiskiem <code>LOCALVERSION</code> z Kroku 3, np. <code>-gentoo-'+laptop.id+'</code>). Jeśli nic nie zrobisz, ono się uruchomi.</li>'
+    + '<li style="margin-bottom:6px"><b>Uruchomienie zapasowego jądra binarnego</b> — strzałką w dół najedź na „Advanced options for Gentoo Linux” i wciśnij <code>Enter</code>. Z rozwiniętej listy wybierz pozycję kończącą się zwykle na <code>-gentoo-dist</code> (to Twoje <code>gentoo-kernel-bin</code>) i wciśnij <code>Enter</code>. Rób tak zawsze, gdy główne jądro po aktualizacji lub nieudanej kompilacji nie chce się uruchomić.</li>'
     + '</ul>';
 
   html += '<h3 style="margin-top:18px">Bieżąca konserwacja i porządki</h3>';
-  html += '<div class="component"><p style="font-size:.85rem;margin:0 0 8px">Przy zwykłej aktualizacji systemu:</p><pre>sudo emerge --update --deep --newuse @world\nsudo etc-update</pre>'
-    + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px"><li>Jeśli wyjdzie nowsza wersja <code>gentoo-kernel</code>, doliczy się do tej komendy i skompiluje sama — dzięki <code>savedconfig</code> z Kroku 4 użyje tej samej, sprawdzonej konfiguracji. Sama kompilacja jądra to zwykle dodatkowe 2–5 minut'+(isTuf?'':' (na X202EP realnie więcej — patrz Krok 5)')+'.</li>'
-    + '<li style="margin-top:5px"><code>sudo etc-update</code> — po każdej takiej aktualizacji scala zmienione pliki konfiguracyjne w <code>/etc</code> (pełny opis w zakładce „Ściągawka: aktualizacja systemu”, Krok 8). Bez tego kroku zaległe pliki <code>._cfg0000_*</code> tylko się kumulują.</li></ul></div>';
+  html += '<div class="note" style="font-size:.85rem"><b>Uwaga, najczęstsza pułapka tej metody:</b> zwykłe <code>sudo emerge --update --deep --newuse @world</code> <b>nie przebuduje</b> Twojego głównego jądra samo z siebie — <code>gentoo-sources</code> tylko rozpakuje nowsze źródła obok starych. <code>gentoo-kernel-bin</code> zaktualizuje się w tym samym poleceniu automatycznie (nowa binarka), ale żeby dostać nowsze jądro <b>główne</b>, musisz ręcznie powtórzyć Kroki 1 (<code>eselect kernel set</code> na nową wersję), 4 (przywrócić kopię <code>.config</code> i puścić <code>make oldconfig</code> zamiast <code>make menuconfig</code> od zera), 5 i 6 — pełna procedura krok po kroku jest w zakładce „Ściągawka: aktualizacja systemu” (Krok 10).</div>';
   html += '<div class="component"><p style="font-size:.85rem;margin:0 0 8px">Co jakiś czas warto posprzątać stare, nieużywane już wersje jądra z dysku:</p><pre>sudo emerge --depclean\nsudo eclean-kernel\nsudo grub-mkconfig -o /boot/grub/grub.cfg</pre>'
     + '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'
     + '<li style="margin-bottom:5px"><code>emerge --depclean</code> — usuwa pakiety, które nie są już nigdzie potrzebne (w tym stare paczki jąder, o ile nic ich nie blokuje).</li>'
@@ -1242,8 +1238,11 @@ function renderUpdateTab(){
 
   html += '<div class="card"><h2>Ściągawka: jak bezpiecznie zaktualizować system Gentoo</h2>';
   html += '<p style="color:var(--muted);font-size:.87rem;margin-top:-4px">Ta zakładka nie zależy od wybranego jądra — to stały checklist, do którego możesz wracać za każdym razem, gdy robisz <code>emerge --sync</code> i aktualizację. Każde polecenie jest rozbite krok po kroku, tak jak w sekcji 6 dla obu laptopów.</p>';
-  html += '<h3>Najpierw najważniejsze pytanie: czy skompilowane pakiety zostaną skompilowane, a binarne binarne?</h3>';
-  html += '<div class="note" style="font-size:.85rem"><b>Tak — i dzieje się to samo, bez żadnego dodatkowego ustawienia.</b> Portage traktuje np. <code>sys-kernel/gentoo-kernel</code> i <code>sys-kernel/gentoo-kernel-bin</code> (z sekcji 6) jako dwa zupełnie osobne pakiety o różnych nazwach — nic ich ze sobą nie miesza ani nie przełącza w locie. Skoro masz zainstalowane oba, to przy każdej aktualizacji: <code>gentoo-kernel</code> zawsze się kompiluje od nowa (bo tak działa jego ebuild), a <code>gentoo-kernel-bin</code> zawsze pobiera gotową binarkę (bo tak działa jego ebuild). Dokładnie ta sama zasada dotyczy każdego innego pakietu w systemie — to, czy coś jest kompilowane czy binarne, wynika z tego, którą nazwę pakietu masz zainstalowaną, a nie z jakiegoś globalnego przełącznika.<br><br>Jedyny wyjątek, o którym warto wiedzieć na przyszłość: gdybyś kiedyś świadomie włączył pobieranie gotowych binarek dla zwykłych pakietów (funkcja <code>getbinpkg</code> / oficjalny binhost Gentoo, konfigurowana w <code>/etc/portage/binrepos.conf</code>), Portage mógłby zacząć podstawiać gotowe binarki zamiast kompilować niektóre pakiety, jeśli akurat pasujący plik binarny byłby dostępny. Domyślna instalacja Gentoo (taka, jaką budowałeś w sekcji 6) tego nie robi — więc dopóki sam tego nie skonfigurujesz, zasada „kompilowane = zawsze kompilowane, bin = zawsze bin” trzyma się sama.</div>';
+  html += '<h3>Najpierw najważniejsze pytanie: co się dzieje z jądrem przy zwykłym <code>emerge --update @world</code>?</h3>';
+  html += '<div class="note" style="font-size:.85rem"><b>To zależy od pakietu — i to jest ta pułapka, na którą trzeba uważać przy Twoim setupie (sekcja 6).</b> Masz zainstalowane dwa zupełnie osobne pakiety jądra: <code>sys-kernel/gentoo-sources</code> (główne, ręcznie kompilowane) i <code>sys-kernel/gentoo-kernel-bin</code> (zapasowe, binarne). Przy każdej aktualizacji <code>@world</code>:<br><br>'
+    + '<b><code>sys-kernel/gentoo-sources</code></b> — Portage tylko rozpakowuje nowszą wersję źródeł do <code>/usr/src/linux-&lt;nowa-wersja&gt;-gentoo</code>, obok starych. Uruchomione jądro <b>się nie zmienia</b>, dopóki sam go nie przebudujesz — patrz Krok 10 niżej i sekcja 6.<br><br>'
+    + '<b><code>sys-kernel/gentoo-kernel-bin</code></b> — pobiera gotową, nowszą binarkę i instaluje ją do <code>/boot</code> automatycznie, bez Twojego udziału.<br><br>'
+    + 'Ta sama zasada („kompilowane = wynika z ebuildu danego pakietu, nie z globalnego przełącznika”) dotyczy każdego innego pakietu w systemie. Jedyny wyjątek, o którym warto wiedzieć na przyszłość: gdybyś kiedyś świadomie włączył pobieranie gotowych binarek dla zwykłych pakietów (funkcja <code>getbinpkg</code> / oficjalny binhost Gentoo, konfigurowana w <code>/etc/portage/binrepos.conf</code>), Portage mógłby zacząć podstawiać gotowe binarki zamiast kompilować niektóre pakiety. Domyślna instalacja Gentoo tego nie robi.</div>';
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📋 Faza I — zanim zaczniesz aktualizację</h2>';
@@ -1286,7 +1285,7 @@ function renderUpdateTab(){
     [
       'Dokładnie ta sama komenda co w Kroku 4, tylko bez <code>--pretend</code> — teraz faktycznie się wykona.',
       'Portage wyświetli tę samą listę co przy podglądzie i zapyta „Would you like to merge these packages? [Yes/No]" — wpisz <code>y</code> i <code>Enter</code>, żeby zatwierdzić (to właśnie robi flaga <code>-a</code> — pyta o potwierdzenie).',
-      'Pakiety kompilowane (jak <code>sys-kernel/gentoo-kernel</code> z sekcji 6) zostaną skompilowane od nowa z ustawieniami z <code>make.conf</code> (<code>-march=native</code> itd.) i tą samą zapisaną konfiguracją (<code>savedconfig</code>). Pakiety binarne (jak <code>gentoo-kernel-bin</code>) po prostu pobiorą nowszą gotową wersję — patrz ramka wyżej.'
+      'Zwróć uwagę, czy na liście pojawia się <code>sys-kernel/gentoo-sources</code> z nowym numerem wersji — jeśli tak, to zapisz to sobie: to sygnał, że po zakończeniu tej komendy czeka Cię ręczny Krok 10. Pakiety binarne (jak <code>gentoo-kernel-bin</code>) po prostu pobiorą nowszą gotową wersję bez dodatkowych działań — patrz ramka wyżej.'
     ]);
   html += step(6, 'Jeśli Portage prosi o rozwiązanie konfliktu flag USE (opcjonalnie)',
     'sudo emerge -avuDN @world --autounmask-write\nsudo etc-update',
@@ -1318,14 +1317,20 @@ function renderUpdateTab(){
       '<code>emerge @preserved-rebuild</code> przebudowuje takie programy pod nowe biblioteki, po czym stare, zachowane wersje można bezpiecznie usunąć w Fazie IV.'
     ],
     'Jeśli polecenie odpowie „Nothing to rebuild" — świetnie, nic nie zostało osierocone.');
-  html += step(10, 'Zrestartuj komputer, jeśli zaktualizowało się jądro',
-    'sudo reboot',
+  html += step(10, 'Jeśli zaktualizowało się gentoo-sources: ręcznie przebuduj główne jądro, potem restart',
+    'eselect kernel list\nsudo eselect kernel set <numer-nowej-wersji>\ncd /usr/src/linux\nsudo cp /etc/kernels/config-$(uname -r)-backup .config\nsudo make oldconfig\nsudo make -jN\nsudo make modules_install\nsudo make install\nsudo grub-mkconfig -o /boot/grub/grub.cfg\nsudo reboot',
     [
-      'Nowe jądro (np. świeżo skompilowany <code>gentoo-kernel</code> z sekcji 6) zacznie realnie działać dopiero po restarcie — do tego momentu nadal pracujesz na starym, uruchomionym jądrze, mimo że nowe leży już w <code>/boot</code>.',
-      'Po restarcie sprawdź w menu GRUB (patrz sekcja 6), że nowa wersja faktycznie jest na liście i da się nią normalnie wystartować.',
-      'Sprawdź, na jakim jądrze faktycznie teraz pracujesz: <code>uname -r</code>.'
+      'To jest właśnie ten wyjątek od reguły „kompilowane pakiety kompilują się same" — <code>sys-kernel/gentoo-sources</code> w Kroku 5 tylko rozpakował nowsze źródła. Twoje uruchomione jądro się nie zmieniło, więc ten krok jest ręczny (dokładny opis mechanizmu i uzasadnienie w sekcji 6, „Bieżąca konserwacja”).',
+      '<code>eselect kernel list</code> / <code>set</code> — przełącza dowiązanie <code>/usr/src/linux</code> na nowo zainstalowaną wersję źródeł.',
+      '<code>cp .../config-...-backup .config</code> — przywraca Twoją zapisaną konfigurację z Kroku 4 sekcji 6, zamiast zaczynać <code>menuconfig</code> od zera.',
+      '<code>make oldconfig</code> — dopasowuje przywróconą konfigurację do nowej wersji źródeł: zapyta interaktywnie tylko o opcje, które są nowe w tej wersji jądra (dla większości można bezpiecznie przyjąć wartość domyślną klawiszem <code>Enter</code>).',
+      '<code>make -jN</code> — podstaw za <code>N</code> wartość <code>-j</code> z kalkulatora MAKEOPTS (sekcja 5) dla danego laptopa, np. <code>make -j5</code> na TUF-ie.',
+      '<code>make modules_install</code> / <code>make install</code> — instalują moduły i obraz jądra do systemu, dokładnie jak w Kroku 5 sekcji 6.',
+      '<code>grub-mkconfig</code> — dopisuje nową wersję do menu rozruchowego.',
+      'Zanim faktycznie zrestartujesz, jeśli chcesz mieć siatkę bezpieczeństwa — sprawdź w menu GRUB, że stara wersja głównego jądra i <code>gentoo-kernel-bin</code> nadal tam są (dopóki nie posprzątasz w Fazie IV), więc zawsze masz do czego wrócić.',
+      'Po restarcie sprawdź, na jakim jądrze faktycznie teraz pracujesz: <code>uname -r</code>.'
     ],
-    'Jeśli ta konkretna aktualizacja nie objęła jądra, ten krok możesz spokojnie pominąć.');
+    'Jeśli ta konkretna aktualizacja nie objęła <code>sys-kernel/gentoo-sources</code> (patrz Twoja notatka z Kroku 5) — cały ten krok możesz spokojnie pominąć i po prostu zrobić <code>sudo reboot</code>, jeśli restart w ogóle jest potrzebny (np. po aktualizacji glibc).');
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🧹 Faza IV — sprzątanie systemu</h2>';
