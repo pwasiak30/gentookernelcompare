@@ -961,7 +961,7 @@ function compileCardHtml(laptop){
   html += '<table class="compare-table"><thead><tr><th></th><th>sys-kernel/gentoo-sources</th><th>sys-kernel/gentoo-kernel</th><th>sys-kernel/gentoo-kernel-bin</th></tr></thead><tbody>'
     + '<tr><td><b>Co to jest</b></td><td>Same źródła — Ty ręcznie konfigurujesz (menuconfig) i kompilujesz</td><td>Zautomatyzowany pakiet dystrybucyjny — kompiluje się lokalnie, ale sam ogarnia initramfs, instalację do /boot, hooki</td><td>Gotowy, prekompilowany pakiet binarny jądra</td></tr>'
     + '<tr><td><b>Optymalizacja pod CPU</b></td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, ręcznie dobrane sterowniki</td><td><span class="pill yes">TAK</span> — <code>-march=native</code>, konfiguracja z <code>USE=savedconfig</code></td><td><span class="pill no">NIE</span> — generyczny <code>x86-64</code>, szeroki zestaw modułów dla kompatybilności</td></tr>'
-    + '<tr><td><b>Co robi zwykłe <code>emerge --update @world</code></b></td><td>Tylko pobiera/rozpakowuje nowsze źródła do <code>/usr/src/linux-&lt;wersja&gt;</code> — <b>samo jądro się nie przebudowuje</b>, to zawsze osobny, ręczny krok (patrz sekcja 6 i „Ściągawka: aktualizacja systemu”, Krok 10)</td><td>Kompiluje nowe jądro samo, od razu przy aktualizacji — bez dodatkowych kroków</td><td>Pobiera gotową, nowszą binarkę — sekundy</td></tr>'
+    + '<tr><td><b>Co robi zwykłe <code>emerge --update @world</code></b></td><td>Tylko pobiera/rozpakowuje nowsze źródła do <code>/usr/src/linux-&lt;wersja&gt;</code> — <b>samo jądro się nie przebudowuje</b>, to zawsze osobny, ręczny krok (patrz sekcja 6 i „Ściągawka: aktualizacja systemu”, Krok 11)</td><td>Kompiluje nowe jądro samo, od razu przy aktualizacji — bez dodatkowych kroków</td><td>Pobiera gotową, nowszą binarkę — sekundy</td></tr>'
     + '<tr><td><b>Kontrola nad .config</b></td><td>Pełna, ręczna za każdym razem (Ty pilnujesz kopii zapasowej — patrz sekcja 6)</td><td>Pełna, ale zapisana raz jako <code>savedconfig</code> i używana automatycznie przy kolejnych wersjach</td><td>Brak — dostajesz to, co przygotowali maintainerzy</td></tr>'
     + '<tr><td><b>Zalecane w tym przewodniku</b></td><td><span class="pill yes">GŁÓWNE jądro</span> — patrz sekcja 6 (tak masz skonfigurowany TUF-a: <code>7.2.0-gentoo-tuf</code>)</td><td>Alternatywa w pełni automatyczna — nieużywana w sekcji 6, ale sensowna, jeśli wolisz mniej ręcznej pracy kosztem odrobiny kontroli</td><td><span class="pill yes">ZAPASOWE jądro</span> — patrz sekcja 6</td></tr>'
     + '</tbody></table>';
@@ -1056,7 +1056,7 @@ function dualKernelGuideHtml(laptop){
       'Przy klasycznym <code>gentoo-sources</code> nie ma mechanizmu <code>savedconfig</code> (to funkcja tylko pakietu <code>gentoo-kernel</code>) — Ty sam odpowiadasz za to, żeby nie zgubić wyciętej pod ten sprzęt konfiguracji przy kolejnej wersji źródeł.',
       '<code>mkdir -p</code> — tworzy katalog docelowy razem z brakującymi katalogami nadrzędnymi (nie zgłosi błędu, jeśli już istnieje).',
       '<code>cp</code> — kopiuje gotowy plik <code>.config</code> pod nazwą z bieżącą wersją jądra, żeby kolejne kopie się nie nadpisywały.',
-      'Przy następnej aktualizacji źródeł (patrz zakładka „Ściągawka: aktualizacja systemu”, Krok 10) skopiujesz ten plik z powrotem do nowego <code>/usr/src/linux/.config</code> i uruchomisz <code>make oldconfig</code> zamiast robić Krok 3 od zera — <code>oldconfig</code> zapyta tylko o nowe opcje, których poprzednia wersja jądra jeszcze nie miała.'
+      'Przy następnej aktualizacji źródeł (patrz zakładka „Ściągawka: aktualizacja systemu”, Krok 11) skopiujesz ten plik z powrotem do nowego <code>/usr/src/linux/.config</code> i uruchomisz <code>make oldconfig</code> zamiast robić Krok 3 od zera — <code>oldconfig</code> zapyta tylko o nowe opcje, których poprzednia wersja jądra jeszcze nie miała.'
     ]);
 
   html += step(5, 'Zainstaluj jądro zapasowe i skompiluj główne ręcznie',
@@ -1250,23 +1250,32 @@ function renderUpdateTab(){
     'sudo emerge --sync',
     [
       '<code>emerge --sync</code> — pobiera świeżą listę wszystkich dostępnych pakietów i ich wersji (tzw. „drzewo Portage") z serwerów Gentoo. Ten krok niczego nie instaluje ani nie zmienia w Twoim systemie — tylko odświeża lokalny spis „co w ogóle jest dostępne do zainstalowania".',
-      'Jeśli masz zainstalowany <code>app-portage/eix</code>, lepszym odpowiednikiem jest <code>eix-sync</code> — robi to samo, a dodatkowo od razu odświeża szybką wyszukiwarkę pakietów.'
+      'Jeśli masz zainstalowany <code>app-portage/eix</code>, lepszym odpowiednikiem jest <code>eix-sync</code> — robi to samo, a dodatkowo od razu odświeża szybką wyszukiwarkę pakietów (dokładnie tak, jak widać to w logu z <code>eix-update</code> po synchronizacji — trzy repozytoria, budowa bazy, gotowe).'
     ],
-    'Rób to zawsze jako pierwszy krok — bez świeżego drzewa Portage nie zobaczysz najnowszych wersji pakietów ani ważnych komunikatów z Kroku 2.');
-  html += step(2, 'Przeczytaj oficjalne komunikaty (news) od deweloperów Gentoo',
+    'Rób to zawsze jako pierwszy krok — bez świeżego drzewa Portage nie zobaczysz najnowszych wersji pakietów ani ważnych komunikatów z Kroku 3.');
+  html += step(2, 'Jeśli Portage o to poprosi: zaktualizuj najpierw samo Portage',
+    'sudo emerge --oneshot sys-apps/portage',
+    [
+      'Zaraz po synchronizacji (Krok 1) Portage czasem od razu wypisuje komunikat: „An update to Portage is available. It is highly recommended that you update Portage now, before any other packages are updated." — to nie jest opcjonalna sugestia do zignorowania, tylko kolejność, której warto realnie przestrzegać: nowsze pakiety w drzewie bywają dopasowane do nowszej wersji samego menedżera pakietów (nowe opcje, poprawki w rozwiązywaniu zależności), więc aktualizowanie reszty systemu starym Portage czasem kończy się dziwnymi błędami zależności.',
+      '<code>--oneshot</code> (skrót: <code>-1</code>) — instaluje pakiet, ale <b>nie dopisuje go do <code>@world</code></b>. Sam <code>sys-apps/portage</code> jest i tak zawsze obecny w systemie jako część bazowego zestawu (<code>@system</code>), więc nie trzeba go świadomie „posiadać" na liście @world — <code>--oneshot</code> jest tu właśnie po to, żeby tego uniknąć.',
+      'Portage skorzysta przy tej kompilacji z tych samych flag <code>CFLAGS</code>/<code>CXXFLAGS</code>/<code>MAKEOPTS</code> z <code>/etc/portage/make.conf</code>, co każdy inny pakiet — czyli też zostanie zbudowany pod architekturę i liczbę rdzeni Twojego konkretnego sprzętu, tak jak reszta systemu.'
+    ],
+    'Jeśli po synchronizacji nie zobaczysz tego komunikatu, po prostu pomiń ten krok — Portage jest już aktualne.');
+  html += step(3, 'Przeczytaj oficjalne komunikaty (news) od deweloperów Gentoo',
     'eselect news list\neselect news read',
     [
       '<code>eselect news list</code> — pokazuje listę „newsów", czyli oficjalnych ogłoszeń Gentoo o zmianach wymagających Twojej uwagi (np. „przed tą aktualizacją ręcznie zmień plik X").',
-      '<code>eselect news read</code> — wyświetla treść najnowszego newsa (albo konkretnego, jeśli dopiszesz jego numer z listy, np. <code>eselect news read 3</code>).'
+      '<code>eselect news read</code> — bez numeru wyświetla treść najstarszego nieprzeczytanego newsa, przewijasz spacją, wychodzisz klawiszem <code>q</code>. Możesz też wskazać konkretny numer z listy, np. <code>eselect news read 3</code>.',
+      'Przykład, dlaczego to nie jest formalność: news o zmianie domyślnego backendu bazy danych w KDE PIM/Akonadi (z MySQL na SQLite) wymaga ręcznej migracji istniejącej bazy — bez przeczytania newsa łatwo tego nie zauważyć, bo sam <code>emerge</code> zainstaluje nowszy pakiet bez ostrzeżenia w trakcie kompilacji.'
     ],
-    'To jeden z najczęściej pomijanych przez początkujących kroków — a jego zignorowanie bywa realną przyczyną zepsutego systemu po większej aktualizacji. Jeśli lista jest pusta, świetnie — nic nie przegapiłeś.');
-  html += step(3, 'Sprawdź wolne miejsce na dysku',
+    'To jeden z najczęściej pomijanych przez początkujących kroków — a jego zignorowanie bywa realną przyczyną zepsutego systemu po większej aktualizacji. Jeśli lista jest pusta, świetnie — nic nie przegapiłeś. Dopóki news pozostaje nieprzeczytany, komunikat „N news items need reading" będzie wracał przy każdym kolejnym <code>emerge</code> — to normalne, nie oznacza to błędu.');
+  html += step(4, 'Sprawdź wolne miejsce na dysku',
     'df -h /',
     [
       '<code>df -h /</code> — pokazuje ilość wolnego miejsca na głównym dysku w czytelnych jednostkach (<code>-h</code> = „human-readable", czyli w GB zamiast bajtów).',
       'Kompilacja większych pakietów (jądro, przeglądarka) potrafi tymczasowo zająć kilka–kilkanaście GB w <code>/var/tmp/portage</code>, zanim gotowy pakiet trafi na swoje miejsce.'
     ]);
-  html += step(4, 'Zobacz podgląd tego, co się zmieni — bez instalowania czegokolwiek',
+  html += step(5, 'Zobacz podgląd tego, co się zmieni — bez instalowania czegokolwiek',
     'sudo emerge -avuDN @world --pretend',
     [
       '<code>--pretend</code> (skrót: <code>-p</code>) — tryb podglądu: Portage tylko pokazuje plan, nic realnie nie instaluje ani nie kompiluje.',
@@ -1276,26 +1285,26 @@ function renderUpdateTab(){
       '<code>-N</code> — newuse, dolicza też pakiety, których flagi USE zmieniły się od ostatniej instalacji, nawet jeśli sama wersja się nie zmieniła.',
       '<code>@world</code> — specjalny „zestaw" oznaczający wszystko, co świadomie zainstalowałeś, plus ich zależności — czyli praktycznie cały Twój system.'
     ],
-    'Warto przejrzeć wyświetloną listę: czy nie ma tam czegoś nieoczekiwanego, np. dużego pakietu, którego akurat nie planowałeś ruszać.');
+    'Warto przejrzeć wyświetloną listę: czy nie ma tam czegoś nieoczekiwanego, np. dużego pakietu, którego akurat nie planowałeś ruszać. Samo <code>sudo emerge @preserved-rebuild</code> uruchomione bez wcześniejszej pełnej aktualizacji (jak w Kroku 6) zwykle i tak pokaże „Nothing to rebuild" — to osobne polecenie od głównej aktualizacji @world, nie jej zamiennik.');
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🚀 Faza II — jak aktualizować</h2>';
-  html += step(5, 'Uruchom właściwą aktualizację',
+  html += step(6, 'Uruchom właściwą aktualizację',
     'sudo emerge -avuDN @world',
     [
-      'Dokładnie ta sama komenda co w Kroku 4, tylko bez <code>--pretend</code> — teraz faktycznie się wykona.',
+      'Dokładnie ta sama komenda co w Kroku 5, tylko bez <code>--pretend</code> — teraz faktycznie się wykona.',
       'Portage wyświetli tę samą listę co przy podglądzie i zapyta „Would you like to merge these packages? [Yes/No]" — wpisz <code>y</code> i <code>Enter</code>, żeby zatwierdzić (to właśnie robi flaga <code>-a</code> — pyta o potwierdzenie).',
-      'Zwróć uwagę, czy na liście pojawia się <code>sys-kernel/gentoo-sources</code> z nowym numerem wersji — jeśli tak, to zapisz to sobie: to sygnał, że po zakończeniu tej komendy czeka Cię ręczny Krok 10. Pakiety binarne (jak <code>gentoo-kernel-bin</code>) po prostu pobiorą nowszą gotową wersję bez dodatkowych działań — patrz ramka wyżej.'
+      'Zwróć uwagę, czy na liście pojawia się <code>sys-kernel/gentoo-sources</code> z nowym numerem wersji — jeśli tak, to zapisz to sobie: to sygnał, że po zakończeniu tej komendy czeka Cię ręczny Krok 11. Pakiety binarne (jak <code>gentoo-kernel-bin</code>) po prostu pobiorą nowszą gotową wersję bez dodatkowych działań — patrz ramka wyżej.'
     ]);
-  html += step(6, 'Jeśli Portage prosi o rozwiązanie konfliktu flag USE (opcjonalnie)',
+  html += step(7, 'Jeśli Portage prosi o rozwiązanie konfliktu flag USE (opcjonalnie)',
     'sudo emerge -avuDN @world --autounmask-write\nsudo etc-update',
     [
       'Czasem aktualizacja jednego pakietu wymaga włączenia lub wyłączenia flagi USE w innym — Portage to wykrywa i pokazuje wyraźny, zwykle czerwony komunikat z proponowaną zmianą zamiast po prostu kontynuować.',
       '<code>--autounmask-write</code> — każe Portage samodzielnie dopisać proponowane zmiany do plików w <code>/etc/portage/</code>, zamiast tylko o nich informować w terminalu.',
-      '<code>sudo etc-update</code> — otwiera krótkie, interaktywne menu, w którym zatwierdzasz te automatycznie przygotowane zmiany (zwykle wybierając opcję zamiany na nowe pliki). Bez tego kroku zmiany z <code>--autounmask-write</code> zostają tylko jako propozycje na dysku, a nie realnie obowiązujące ustawienia.'
+      '<code>sudo etc-update</code> — otwiera krótkie, interaktywne menu, w którym zatwierdzasz te automatycznie przygotowane zmiany. Pełny opis tego, co dokładnie oznaczają cyfry w tym menu (w tym pułapka z potwierdzeniami <code>mv</code>), jest w Kroku 9 niżej — dotyczy dokładnie tego samego narzędzia.'
     ],
-    'Po zatwierdzeniu zmian po prostu uruchom jeszcze raz komendę z Kroku 5.');
-  html += step(7, 'Jeśli aktualizacja się przerwie (zanik prądu, zawieszenie się czegoś)',
+    'Po zatwierdzeniu zmian po prostu uruchom jeszcze raz komendę z Kroku 6.');
+  html += step(8, 'Jeśli aktualizacja się przerwie (zanik prądu, zawieszenie się czegoś)',
     'sudo emerge --resume',
     [
       'Wznawia dokładnie od miejsca, w którym proces się przerwał, zamiast od nowa przechodzić przez całą listę pakietów.'
@@ -1303,24 +1312,26 @@ function renderUpdateTab(){
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">✅ Faza III — po aktualizacji</h2>';
-  html += step(8, 'Scal zaktualizowane pliki konfiguracyjne',
+  html += step(9, 'Scal zaktualizowane pliki konfiguracyjne',
     'sudo etc-update',
     [
       'Kiedy pakiet zmienia swój domyślny plik konfiguracyjny w <code>/etc</code>, a Ty masz tam już własne zmiany, Portage <b>nie</b> nadpisuje Twojego pliku automatycznie — zamiast tego zostawia obok nową, proponowaną wersję (plik zaczynający się od <code>._cfg0000_</code>).',
-      '<code>etc-update</code> pokazuje różnice między starym a nowym plikiem i pyta, co zrobić: zostawić swoją wersję, przyjąć nową, czy scalić je ręcznie.'
+      '<code>etc-update</code> pokazuje listę plików do przejrzenia, a przy każdym z nich pytanie z opcjami: numer pliku do ręcznego scalenia, <code>-1</code> żeby wyjść, <code>-3</code> („auto-merge all") żeby automatycznie zastąpić wszystkie pliki, które nie mają konfliktów wymagających Twojej decyzji, <code>-5</code> to samo co <code>-3</code>, ale <b>bez</b> dodatkowego potwierdzenia <code>mv -i</code> dla każdego pliku, <code>-7</code> żeby odrzucić wszystkie nowe propozycje, <code>-9</code> to samo co <code>-7</code> bez potwierdzeń.',
+      '<b>Pułapka, na którą łatwo trafić:</b> jeśli wybierzesz <code>-3</code>, a system ma alias <code>mv=\'mv -i\'</code> (częste na Gentoo/KDE), <code>etc-update</code> i tak zapyta osobno o każdy plik: „mv: zamazać »/etc/portage/...«?" — trzeba wtedy ręcznie potwierdzić (<code>y</code>/Enter) każdą podmianę z osobna, co przy kilku plikach jest po prostu irytujące. Rozwiązanie: od razu wybieraj <code>-5</code> zamiast <code>-3</code>, jeśli ufasz automatycznemu scaleniu — załatwia to samo bez żadnych dodatkowych pytań.',
+      'Jeśli dla jednego pliku istnieje kilka kandydatów do podmiany (np. dwie różne propozycje dla <code>/etc/portage/package.use/xorg</code> z różnych aktualizacji), <code>etc-update</code> obsłuży je jedną po drugiej — komunikat „NOTE: 1 updates remaining" po zakończeniu pierwszej rundy nie oznacza błędu, tylko że został jeszcze jeden plik do rozpatrzenia. Po prostu uruchom <code>etc-update</code> ponownie, aż zobaczysz „Nothing left to do; exiting."'
     ],
-    'Rób to po każdej większej aktualizacji — zaległe pliki <code>.cfg</code> tylko się kumulują i z czasem łatwo się w nich pogubić. Alternatywa z ładniejszym interfejsem: <code>sudo dispatch-conf</code>.');
-  html += step(9, 'Napraw programy, które nadal używają starych, usuniętych bibliotek',
+    'Rób to po każdej większej aktualizacji — zaległe pliki <code>.cfg</code> tylko się kumulują i z czasem łatwo się w nich pogubić. Alternatywa z ładniejszym interfejsem: <code>sudo dispatch-conf</code>. Samo uruchomienie <code>emerge @preserved-rebuild</code> (Krok 10) <b>nie</b> czyści tych plików ani nie kasuje komunikatu o newsach — to trzy zupełnie osobne, niezależne od siebie ostrzeżenia Portage i każde trzeba obsłużyć osobno.');
+  html += step(10, 'Napraw programy, które nadal używają starych, usuniętych bibliotek',
     'sudo emerge @preserved-rebuild',
     [
       'Kiedy współdzielona biblioteka (np. <code>openssl</code>) dostaje nowszą wersję pod inną nazwą pliku, programy zlinkowane wcześniej ze starą wersją przestałyby normalnie działać po jej usunięciu. Portage w takiej sytuacji tymczasowo „zachowuje" (preserved) starą bibliotekę na dysku, żeby nic się nie wywaliło.',
       '<code>emerge @preserved-rebuild</code> przebudowuje takie programy pod nowe biblioteki, po czym stare, zachowane wersje można bezpiecznie usunąć w Fazie IV.'
     ],
-    'Jeśli polecenie odpowie „Nothing to rebuild" — świetnie, nic nie zostało osierocone.');
-  html += step(10, 'Jeśli zaktualizowało się gentoo-sources: ręcznie przebuduj główne jądro, potem restart',
+    'Jeśli polecenie odpowie „Nothing to rebuild" — świetnie, nic nie zostało osierocone. To normalne po mniejszych aktualizacjach, gdzie żadna współdzielona biblioteka nie zmieniła nazwy pliku (np. <code>SONAME</code>) — nie oznacza to, że polecenie „nie zadziałało".');
+  html += step(11, 'Jeśli zaktualizowało się gentoo-sources: ręcznie przebuduj główne jądro, potem restart',
     'eselect kernel list\nsudo eselect kernel set <numer-nowej-wersji>\ncd /usr/src/linux\nsudo cp /etc/kernels/config-$(uname -r)-backup .config\nsudo make oldconfig\nsudo make -jN\nsudo make modules_install\nsudo make install\nsudo grub-mkconfig -o /boot/grub/grub.cfg\nsudo reboot',
     [
-      'To jest właśnie ten wyjątek od reguły „kompilowane pakiety kompilują się same" — <code>sys-kernel/gentoo-sources</code> w Kroku 5 tylko rozpakował nowsze źródła. Twoje uruchomione jądro się nie zmieniło, więc ten krok jest ręczny (dokładny opis mechanizmu i uzasadnienie w sekcji 6, „Bieżąca konserwacja”).',
+      'To jest właśnie ten wyjątek od reguły „kompilowane pakiety kompilują się same" — <code>sys-kernel/gentoo-sources</code> w Kroku 6 tylko rozpakował nowsze źródła. Twoje uruchomione jądro się nie zmieniło, więc ten krok jest ręczny (dokładny opis mechanizmu i uzasadnienie w sekcji 6, „Bieżąca konserwacja”).',
       '<code>eselect kernel list</code> / <code>set</code> — przełącza dowiązanie <code>/usr/src/linux</code> na nowo zainstalowaną wersję źródeł.',
       '<code>cp .../config-...-backup .config</code> — przywraca Twoją zapisaną konfigurację z Kroku 4 sekcji 6, zamiast zaczynać <code>menuconfig</code> od zera.',
       '<code>make oldconfig</code> — dopasowuje przywróconą konfigurację do nowej wersji źródeł: zapyta interaktywnie tylko o opcje, które są nowe w tej wersji jądra (dla większości można bezpiecznie przyjąć wartość domyślną klawiszem <code>Enter</code>).',
@@ -1330,23 +1341,25 @@ function renderUpdateTab(){
       'Zanim faktycznie zrestartujesz, jeśli chcesz mieć siatkę bezpieczeństwa — sprawdź w menu GRUB, że stara wersja głównego jądra i <code>gentoo-kernel-bin</code> nadal tam są (dopóki nie posprzątasz w Fazie IV), więc zawsze masz do czego wrócić.',
       'Po restarcie sprawdź, na jakim jądrze faktycznie teraz pracujesz: <code>uname -r</code>.'
     ],
-    'Jeśli ta konkretna aktualizacja nie objęła <code>sys-kernel/gentoo-sources</code> (patrz Twoja notatka z Kroku 5) — cały ten krok możesz spokojnie pominąć i po prostu zrobić <code>sudo reboot</code>, jeśli restart w ogóle jest potrzebny (np. po aktualizacji glibc).');
+    'Jeśli ta konkretna aktualizacja nie objęła <code>sys-kernel/gentoo-sources</code> (patrz Twoja notatka z Kroku 6) — cały ten krok możesz spokojnie pominąć i po prostu zrobić <code>sudo reboot</code>, jeśli restart w ogóle jest potrzebny (np. po aktualizacji glibc).');
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🧹 Faza IV — sprzątanie systemu</h2>';
-  html += step(11, 'Zobacz, co można bezpiecznie usunąć — najpierw tylko podgląd',
+  html += step(12, 'Zobacz, co można bezpiecznie usunąć — najpierw tylko podgląd',
     'sudo emerge --depclean --pretend',
     [
-      '<code>--depclean</code> szuka pakietów, które zostały zainstalowane wyłącznie jako czyjaś zależność, a teraz nikt ich już nie potrzebuje (np. bo odinstalowałeś program, dla którego były wymagane).',
-      '<code>--pretend</code> znów oznacza „tylko pokaż" — <code>depclean</code> bez wcześniejszego podglądu bywa ryzykowny: w rzadkich przypadkach może zasugerować usunięcie czegoś, co jednak jest Ci potrzebne (np. gdy zapomniałeś dopisać pakiet do <code>@world</code> przy jego instalacji).'
+      '<code>--depclean</code> szuka pakietów, które zostały zainstalowane wyłącznie jako czyjaś zależność, a teraz nikt ich już nie potrzebuje (np. bo odinstalowałeś program, dla którego były wymagane, albo zaktualizowałeś zestaw pakietów KDE PIM i stare wersje bibliotek zostały osierocone).',
+      '<code>--pretend</code> znów oznacza „tylko pokaż" — <code>depclean</code> bez wcześniejszego podglądu bywa ryzykowny: w rzadkich przypadkach może zasugerować usunięcie czegoś, co jednak jest Ci potrzebne (np. gdy zapomniałeś dopisać pakiet do <code>@world</code> przy jego instalacji).',
+      'Jak czytać wynik: każdy pakiet ma trzy kolumny — <code>selected</code> (wersja, którą <code>depclean</code> chce usunąć), <code>protected</code> (nic — pakiety chronione np. przez <code>package.provided</code> nigdy tu nie trafią) i <code>omitted</code> (wersja, którą zamierza zostawić, jeśli jest nowsza). Duża lista (np. kilkadziesiąt pozycji: stare biblioteki KDE PIM w wersji sprzed aktualizacji, stary <code>net-nds/openldap</code>, stary <code>dev-libs/xapian</code> itd.) to normalny efekt większej aktualizacji <code>@world</code>, w której nowe wersje zastąpiły stare zależności — nie jest to sygnał alarmowy sam w sobie.'
     ],
-    'Przejrzyj listę uważnie. Jeśli widzisz tam coś, co na pewno chcesz zachować, dopisz to jawnie do <code>@world</code>: <code>sudo emerge --noreplace --select nazwa/pakietu</code>, i uruchom podgląd jeszcze raz.');
-  html += step(12, 'Faktycznie posprzątaj',
+    '<b>Zawsze osobno przeczytaj wpisy <code>sys-kernel/gentoo-sources</code> i <code>sys-kernel/gentoo-kernel(-bin)</code>, jeśli się pojawią.</b> To jedyne pakiety na tej liście, których usunięcie ma realne, natychmiastowe konsekwencje (możesz zostać bez zapasowego jądra do wyboru w GRUB-ie). Jeśli chcesz zachować starszą wersję jako siatkę bezpieczeństwa, dopisz ją jawnie do <code>@world</code> przed uruchomieniem właściwego <code>depclean</code>: <code>sudo emerge --noreplace sys-kernel/gentoo-kernel:&lt;wersja&gt;</code> (podstaw dokładny numer widoczny na liście), po czym uruchom podgląd jeszcze raz — powinien zniknąć z listy usuwanych.');
+  html += step(13, 'Faktycznie posprzątaj',
     'sudo emerge --depclean',
     [
-      'Ta sama operacja co w Kroku 11, tym razem bez <code>--pretend</code> — realnie usuwa zbędne pakiety.'
+      'Ta sama operacja co w Kroku 12, tym razem bez <code>--pretend</code> — realnie usuwa zbędne pakiety.',
+      'Wynik „No packages selected for removal by depclean" jest równie normalny jak długa lista z Kroku 12 — oznacza po prostu, że w danym momencie nic nie jest już osierocone (np. bo poprzednia aktualizacja niczego nie podmieniła, albo bo sam już wcześniej ręcznie posprzątałeś).'
     ]);
-  html += step(13, 'Wyczyść stare wersje jądra i pliki pobrane podczas kompilacji',
+  html += step(14, 'Wyczyść stare wersje jądra i pliki pobrane podczas kompilacji',
     'sudo eclean-kernel\nsudo eclean distfiles\nsudo eclean packages',
     [
       '<code>eclean-kernel</code> — usuwa stare, nieużywane już wersje jądra z <code>/boot</code> i <code>/lib/modules</code> (dokładnie ten sam mechanizm, o którym mowa w sekcji 6).',
@@ -1354,16 +1367,16 @@ function renderUpdateTab(){
       '<code>eclean packages</code> — czyści <code>/var/cache/binpkgs</code>: stare paczki binarne, w tym te tworzone automatycznie przy każdej kompilacji, jeśli masz włączone <code>FEATURES="buildpkg"</code>.'
     ],
     'Wszystkie trzy polecenia pochodzą z pakietu <code>app-portage/gentoolkit</code> — jeśli go nie masz, zainstaluj najpierw: <code>sudo emerge app-portage/gentoolkit</code>.');
-  html += step(14, 'Zaktualizuj menu rozruchowe GRUB',
+  html += step(15, 'Zaktualizuj menu rozruchowe GRUB',
     'sudo grub-mkconfig -o /boot/grub/grub.cfg',
     [
-      'Tak samo jak w sekcji 6 — odświeża listę jąder w menu startowym, żeby zniknęły z niego wpisy do wersji, które właśnie usunąłeś w Kroku 13.'
+      'Tak samo jak w sekcji 6 — odświeża listę jąder w menu startowym, żeby zniknęły z niego wpisy do wersji, które właśnie usunąłeś w Kroku 14.'
     ]);
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🟢 Faza V — jeśli oprócz Portage używasz nvm (Node.js)</h2>';
   html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ten krok dotyczy Cię <b>tylko</b>, jeśli sam zainstalowałeś <a href="https://github.com/nvm-sh/nvm" target="_blank" rel="noopener">nvm</a> (Node Version Manager) do zarządzania Node.js — np. do pracy/nauki programowania. To narzędzie jest całkowicie osobne od Portage: nie ma z nim nic wspólnego, nie jest pakietem Gentoo i emerge o nim nie wie.</p>';
-  html += step(15, 'Zaktualizuj Node.js do najnowszego LTS przez nvm, przenosząc swoje globalne pakiety',
+  html += step(16, 'Zaktualizuj Node.js do najnowszego LTS przez nvm, przenosząc swoje globalne pakiety',
     'nvm install --lts --reinstall-packages-from=current',
     [
       '<code>nvm</code> — menedżer wersji Node.js działający wyłącznie w Twoim koncie użytkownika (instaluje wersje do <code>~/.nvm/versions/node/</code>). To zupełnie inny mechanizm niż Portage: nie kompiluje niczego z <code>make.conf</code>, nie zapisuje się w bazie pakietów <code>emerge -p @world</code> i nie pojawi się w żadnym z kroków Fazy I–IV powyżej.',
@@ -1377,12 +1390,20 @@ function renderUpdateTab(){
     + '<b>3. Pakiety z natywnymi dodatkami (native addons) mogą wymagać ponownej kompilacji.</b> Część pakietów npm (te korzystające z <code>node-gyp</code>, np. sterowniki do baz danych czy narzędzia do przetwarzania obrazów) zawiera skompilowany kod C/C++ dowiązany do konkretnej wersji Node. Reinstalacja pod nową wersję automatycznie je przebudowuje — ale do tego potrzebne są w systemie standardowe narzędzia kompilacyjne (<code>sys-devel/gcc</code>, <code>make</code>, <code>python</code>), które na Gentoo z reguły już masz z racji kompilowania innych pakietów przez Portage.<br><br>'
     + '<b>4. To nie wpływa na ewentualny <code>dev-lang/nodejs</code> zainstalowany przez Portage.</b> Jeśli oprócz nvm masz też systemowy Node.js zainstalowany przez <code>emerge</code>, oba żyją obok siebie niezależnie — to, którego faktycznie używa dana komenda <code>node</code> w terminalu, zależy wyłącznie od kolejności w zmiennej <code>PATH</code> (nvm zwykle dopisuje się na początek, więc „wygrywa", gdy jest załadowany w danej sesji powłoki).<br><br>'
     + '<b>Jak sprawdzić, że wszystko się udało:</b> <code>node -v</code> i <code>npm -v</code> (powinny pokazać nową wersję), <code>npm list -g --depth=0</code> (lista przeniesionych globalnych pakietów) oraz <code>nvm ls</code> (przegląd wszystkich zainstalowanych przez nvm wersji, z gwiazdką przy aktywnej).</div>';
+  html += step(17, 'Jeśli na co dzień używasz powłoki Fish: „fish: Unknown command: nvm"',
+    'bash\nexport NVM_DIR="$HOME/.nvm"\n[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\nnvm install --lts --reinstall-packages-from=current\nexit',
+    [
+      'Powód: oficjalny instalator nvm dopisuje kod ładujący wyłącznie do plików startowych Basha/Zsh (<code>~/.bashrc</code>, <code>~/.zshrc</code>, <code>~/.profile</code>) — Fish ma zupełnie inną, niekompatybilną składnię skryptów i nvm nigdy nie doda tam wpisu sam z siebie. To dlatego <code>nvm</code> jako polecenie „nie istnieje" w Fishu, nawet gdy jest już poprawnie zainstalowany w <code>~/.nvm</code>.',
+      'Najszybsze obejście (bez instalowania niczego dodatkowego): wejdź na chwilę do Basha poleceniem <code>bash</code>, ręcznie załaduj skrypt <code>nvm.sh</code> dwiema liniami <code>export</code>/<code>source</code> pokazanymi wyżej, uruchom w tej podpowłoce właściwe polecenie <code>nvm install ...</code>, a na koniec <code>exit</code>, żeby wrócić do Fisha. Zmiana wersji Node zapisana przez nvm w plikach na dysku (<code>~/.nvm/alias/default</code> itp.) zostaje trwała niezależnie od tego, w jakiej powłoce ją wykonałeś.',
+      'Rozwiązanie stałe (żeby <code>nvm</code> działało bezpośrednio w Fishu, bez przeskakiwania do Basha za każdym razem): zainstaluj dedykowany port dla Fisha, np. <code>jorgebucaran/nvm.fish</code> przez menedżer wtyczek <a href="https://github.com/jorgebucaran/fisher" target="_blank" rel="noopener">Fisher</a> (<code>fisher install jorgebucaran/nvm.fish</code>), albo uniwersalny mostek <code>edc/bass</code>, który pozwala uruchamiać dowolne skrypty basha (w tym <code>nvm.sh</code>) wewnątrz Fisha.'
+    ],
+    'To osobny temat od reszty tej fazy — dotyczy tylko sposobu, w jaki Twoja powłoka „widzi" nvm, a nie samej aktualizacji Node.js, która przebiega identycznie jak w Kroku 16.');
   html += '</div>';
 
   html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🔧 Faza VI — typowe problemy podczas dużej aktualizacji i jak je rozwiązać</h2>';
   html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ta faza to zbiór realnych sytuacji, które potrafią się przytrafić przy większej aktualizacji <code>@world</code> — nie za każdym razem, ale wystarczająco często, żeby mieć je pod ręką. Każda ma swoją przyczynę i konkretne, bezpieczne rozwiązanie, wyjaśnione krok po kroku tak samo dokładnie jak reszta tej ściągawki.</p>';
 
-  html += step(16, 'Błąd „circular dependencies" przy aktualizacji GCC (kompilator „zależy sam od siebie")',
+  html += step(18, 'Błąd „circular dependencies" przy aktualizacji GCC (kompilator „zależy sam od siebie")',
     'emerge --ask --binpkg-respect-use=n sys-devel/gcc\nsudo emerge --ask --update --deep --newuse --exclude sys-devel/gcc @world',
     [
       'Co oznacza ten błąd: Portage czasem zgłasza, że <code>sys-devel/gcc</code> (kompilator) jest sam swoją własną zależnością potrzebną do zbudowania („depends on itself (buildtime)"). To nie oznacza zepsutego systemu — to znany, powtarzalny efekt uboczny sposobu, w jaki paczka GCC jest budowana (kompilator bywa używany do budowania własnych bibliotek pomocniczych), w połączeniu z tym, że dostępna paczka binarna ma nieco inne flagi USE (np. <code>lto</code>, <code>pgo</code>) niż te ustawione w Twoim systemie, więc Portage odrzuca binarkę i próbuje kompilować ze źródeł — a to właśnie wtedy ujawnia pętlę.',
@@ -1391,7 +1412,7 @@ function renderUpdateTab(){
     ],
     'Kolejność ma znaczenie: najpierw zainstaluj/zaktualizuj sam GCC (pierwsza komenda), dopiero potem uruchom resztę aktualizacji z pominięciem GCC (druga komenda). Jeśli w kolejnej aktualizacji systemu (za tydzień, miesiąc) błąd się powtórzy — to normalne, wykonaj te same dwie komendy jeszcze raz.');
 
-  html += step(17, 'Kompilacja „wisi" bardzo długo (Node.js, Firefox, GCC, LibreOffice, Chromium, KDE Plasma…)',
+  html += step(19, 'Kompilacja „wisi" bardzo długo (Node.js, Firefox, GCC, LibreOffice, Chromium, KDE Plasma…)',
     'top',
     [
       'Otwórz <b>drugi</b> terminal (albo drugą kartę), zaloguj się i uruchom <code>top</code> (lub czytelniejszy <code>htop</code>, jeśli masz zainstalowany: <code>sudo emerge app-admin/htop</code>).',
@@ -1400,23 +1421,23 @@ function renderUpdateTab(){
     ],
     'To nie jest awaria — to specyfika Gentoo: pewne „molochy" (Node.js z silnikiem V8, Firefox, Chromium, LibreOffice, GCC, KDE Plasma) zawierają miliony linii kodu C/C++ i potrafią kompilować się od kilkunastu minut do nawet kilku godzin, zwłaszcza na słabszym sprzęcie (jak Celeron w X202EP). Zdecydowana większość codziennych aktualizacji to jednak małe pakiety kompilujące się w kilka–kilkadziesiąt sekund. Nie przerywaj kompilacji (<code>Ctrl+C</code>) tylko dlatego, że długo trwa — przerwanie oznacza start tego pakietu od zera przy następnej próbie.');
 
-  html += step(18, 'Krok 11 (<code>emerge --depclean --pretend</code>) odmawia działania: „Dependencies could not be completely resolved"',
+  html += step(20, 'Krok 12 (<code>emerge --depclean --pretend</code>) odmawia działania: „Dependencies could not be completely resolved"',
     'sudo emerge --ask --update --newuse --deep --with-bdeps=y @world',
     [
       'Ten komunikat to zabezpieczenie: zanim Portage zgodzi się policzyć, co bezpiecznie usunąć, chce mieć pewność, że wszystkie zależności w systemie (łącznie z tzw. zależnościami czasu budowania) są w pełni spójne — inaczej ryzykowałby usunięcie czegoś, co jeszcze jest gdzieś potrzebne.',
       '<code>--with-bdeps=y</code> — każe Portage doliczyć również „build-time dependencies" (bdeps), czyli pakiety potrzebne tylko w trakcie kompilowania innych pakietów (np. brakujący pakiet językowy do Firefoxa albo biblioteka pomocnicza do Node.js) — to zwykle właśnie one powodują ten komunikat, gdy zostały pominięte przy jakiejś wcześniejszej, częściowej aktualizacji.'
     ],
-    'Gdy ta komenda zakończy się bez błędów, wróć do Kroku 11 z Fazy IV (<code>emerge --ask --depclean --pretend</code>) — tym razem powinien przejść bez skarg.');
+    'Gdy ta komenda zakończy się bez błędów, wróć do Kroku 12 z Fazy IV (<code>emerge --ask --depclean --pretend</code>) — tym razem powinien przejść bez skarg.');
 
-  html += step(19, 'Chcesz usunąć jedną konkretną, starą wersję pakietu, a proste <code>--unmerge</code> jej „nie widzi"',
+  html += step(21, 'Chcesz usunąć jedną konkretną, starą wersję pakietu, a proste <code>--unmerge</code> jej „nie widzi"',
     'qlist -Iv nazwa-pakietu\nsudo emerge --ask --verbose --unmerge =pelna/nazwa-pakietu-wersja',
     [
       '<code>qlist -Iv nazwa-pakietu</code> (z pakietu <code>app-portage/portage-utils</code> — jeśli go nie masz: <code>sudo emerge app-portage/portage-utils</code>) — wypisuje dokładne, pełne nazwy i wersje wszystkich zainstalowanych pakietów pasujących do podanego fragmentu nazwy, łącznie z ewentualnymi dopiskami rewizji. Portage bywa wybredne co do dokładnego zapisu wersji, więc zgadywanie „na oko" (np. wpisanie tylko <code>7.1.6</code>, gdy takiej wersji w ogóle nie ma zainstalowanej, a jest np. <code>7.1.5</code>) kończy się komunikatem „Couldn\'t find … to unmerge".',
       'Znak <code>=</code> przed nazwą pakietu — mówi Portage: usuń <b>dokładnie</b> tę jedną, konkretną wersję, a nie jakąkolwiek inną pasującą do tej samej nazwy pakietu (zabezpiecza to np. przed przypadkowym odinstalowaniem najnowszego, używanego jądra zamiast starego).'
     ],
-    'To ręczna metoda zapasowa — na co dzień do porządkowania starych wersji jądra wystarczy <code>eclean-kernel</code> z Kroku 13 w Fazie IV; sięgaj po <code>qlist</code> + <code>=…</code> tylko wtedy, gdy automatyczne narzędzie nie objęło jakiejś konkretnej, nietypowej wersji.');
+    'To ręczna metoda zapasowa — na co dzień do porządkowania starych wersji jądra wystarczy <code>eclean-kernel</code> z Kroku 14 w Fazie IV; sięgaj po <code>qlist</code> + <code>=…</code> tylko wtedy, gdy automatyczne narzędzie nie objęło jakiejś konkretnej, nietypowej wersji.');
 
-  html += step(20, 'GRUB dalej pokazuje w menu stare jądro, mimo że jego pakiet już odinstalowałeś',
+  html += step(22, 'GRUB dalej pokazuje w menu stare jądro, mimo że jego pakiet już odinstalowałeś',
     'uname -r\nls -l /boot\nsudo rm -f /boot/*STARA-WERSJA*\nsudo grub-mkconfig -o /boot/grub/grub.cfg',
     [
       '<code>uname -r</code> — <b>zawsze wykonaj ten krok jako pierwszy i zapamiętaj wynik.</b> To wersja jądra, na którym aktualnie pracujesz — jej pod żadnym pozorem nie usuwaj, bo to jak wyjęcie fundamentu spod działającego systemu.',
@@ -1425,7 +1446,7 @@ function renderUpdateTab(){
     ],
     'Dzieje się tak zwykle wtedy, gdy pakiet jądra został odinstalowany przez <code>emerge --unmerge</code>, ale z jakiegoś powodu mechanizm <code>installkernel</code> nie posprzątał plików w <code>/boot</code> automatycznie. Po ręcznym usunięciu plików i odświeżeniu GRUB-a wpis na starcie komputera zniknie na dobre.');
 
-  html += step(21, 'Błąd „Unable to find kernel sources at /usr/src/linux" przy kompilacji innych pakietów',
+  html += step(23, 'Błąd „Unable to find kernel sources at /usr/src/linux" przy kompilacji innych pakietów',
     'ls -l /usr/src/\nsudo ln -sfn linux-WERSJA-gentoo /usr/src/linux',
     [
       'Niektóre pakiety (np. <code>net-libs/nodejs</code>, <code>x11-drivers/nvidia-drivers</code>, moduły VirtualBox czy WireGuard) przy kompilacji zaglądają do <code>/usr/src/linux</code> — to specjalny link symboliczny, który z założenia ma zawsze wskazywać na źródła jądra, z którym aktualnie pracujesz. Po instalacji nowego jądra ten link czasem nie aktualizuje się sam.',
