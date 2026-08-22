@@ -1457,6 +1457,31 @@ function renderUpdateTab(){
 
   html += '</div>';
 
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📦 Faza VII — jeśli oprócz Portage używasz Flatpaka</h2>';
+  html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ten krok dotyczy Cię <b>tylko</b>, jeśli masz zainstalowane aplikacje z Flathuba (<code>sudo emerge app-containers/flatpak</code>, jeśli chcesz go w ogóle mieć w systemie). Flatpak zarządza swoimi paczkami całkowicie niezależnie od Portage — nie ma z <code>emerge</code>/<code>@world</code> nic wspólnego, nie kompiluje niczego lokalnie (paczki są gotowe, pobierane binarnie z Flathuba) i nie pojawi się w żadnym z kroków Fazy I–VI powyżej.</p>';
+  html += step(24, 'Zaktualizuj wszystkie aplikacje i środowiska uruchomieniowe Flatpaka',
+    'flatpak update',
+    [
+      '<code>flatpak</code> — narzędzie do zarządzania aplikacjami działającymi w piaskownicy (sandboksie), niezależnie od tego, jaka dystrybucja jest pod spodem.',
+      '<code>update</code> — sprawdza dostępne aktualizacje dla wszystkich zainstalowanych aplikacji oraz tzw. runtime\'ów (współdzielonych środowisk uruchomieniowych, np. <code>org.freedesktop.Platform</code> czy sterowników graficznych w konkretnej wersji), pokazuje listę i pyta o potwierdzenie (<code>y</code> + Enter).',
+      'W trakcie zobaczysz pasek postępu dla każdej paczki z osobna (numer, nazwa, gałąź, ile już pobrano z ilu MB) — to normalne, nie oznacza to zawieszenia się polecenia, nawet jeśli duże paczki (jak sterownik nvidia, potrafiący ważyć 300+ MB) aktualizują się dłużej.'
+    ],
+    'W kolumnie „Dz" (działanie) najczęściej zobaczysz <code>u</code> (update — aktualizacja) i <code>i</code> (install — nowa zależność, np. nowsza wersja sterownika graficznego instalowana obok starej). Pozycja z <code>r</code> (remove) to zapowiedź usunięcia starej wersji, która pojawi się realnie dopiero w Kroku 25.');
+  html += '<div class="note" style="font-size:.85rem"><b>Komunikaty „środowisko/program jest niewspierane" — co to właściwie znaczy i co z tym zrobić.</b><br><br>'
+    + 'Flathub w ten sposób oznacza runtime\'y i aplikacje, które przestały dostawać poprawki bezpieczeństwa albo zostały całkiem zdjęte z repozytorium. To nie błąd Twojej konfiguracji — to informacja o stanie konkretnej paczki na serwerach Flathuba, niezależna od tego, czy cokolwiek u siebie zmieniłeś.<br><br>'
+    + '<b>Runtime niewspierany (np. „GNOME 45 runtime is no longer supported")</b> — środowisko, z którego korzysta któraś z Twoich aplikacji, przestało dostawać aktualizacje bezpieczeństwa (Flathub podaje zwykle dokładną datę końca wsparcia). Sam Flatpak nadal go doinstaluje, jeśli jakaś aplikacja go wymaga — to tylko ostrzeżenie, nie blokada.<br><br>'
+    + '<b>Aplikacja „delisted" (zdjęta z Flathuba)</b> — autor lub Flathub wycofał paczkę z oficjalnego repozytorium, najczęściej dlatego, że projekt został porzucony albo naruszał zasady sklepu. Zainstalowana kopia nadal działa i nawet może się jeszcze aktualizować (jeśli stare wydania wciąż wiszą w repo), ale nie dostanie już nowych wersji na dłuższą metę.<br><br>'
+    + '<b>Aplikacja „no longer maintained"</b> — projekt żyje formalnie na Flathubie, ale autor go porzucił. W praktyce to ten sam sygnał co wyżej: szukaj aktywnie rozwijanej alternatywy, jeśli zależy Ci na łatkach bezpieczeństwa.<br><br>'
+    + 'Praktyczna zasada: te komunikaty <b>nie blokują</b> aktualizacji reszty systemu — możesz spokojnie zatwierdzić <code>y</code> na wszystko inne. Jedyna realna decyzja to co zrobić z konkretną, oznaczoną aplikacją: albo świadomie zostajesz przy niej (i akceptujesz, że nie dostanie już poprawek), albo ją usuwasz (<code>flatpak uninstall &lt;identyfikator&gt;</code>, np. <code>flatpak uninstall com.wire.WireDesktop</code>) i szukasz aktywnie utrzymywanego zamiennika.</div>';
+  html += step(25, 'Wyczyść osierocone runtime\'y i biblioteki po aktualizacji',
+    'flatpak uninstall --unused',
+    [
+      '<code>--unused</code> — każe Flatpakowi wyszukać wszystkie zainstalowane runtime\'y, rozszerzenia i starsze wersje, z których nie korzysta już żadna zainstalowana aplikacja (typowo dokładnie to, co Krok 24 oznaczył jako <code>r</code> na liście — np. stara wersja sterownika nvidia <code>610-43-03</code> po tym, jak zainstalowała się nowsza <code>610-57-04</code>), i zaproponować ich usunięcie.',
+      'Podobnie jak przy <code>emerge --depclean</code> w Fazie IV — pokazana lista to bezpieczny podgląd tego, co realnie jest już osierocone, nie usuwa niczego, co wciąż jest komuś potrzebne.'
+    ],
+    'Warto uruchamiać to po każdej większej aktualizacji Flatpaka — stare runtime\'y i sterowniki graficzne potrafią ważyć po kilkaset MB każdy i szybko zajmują miejsce na dysku, zwłaszcza gdy Flatpak trzyma równolegle po dwie wersje sterownika nvidia/mesa.');
+  html += '</div>';
+
   container.innerHTML = html;
 }
 
