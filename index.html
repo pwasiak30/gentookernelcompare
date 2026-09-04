@@ -282,8 +282,10 @@
 </div>
 
 <footer>
-  Dane o wydaniach jąder: <a href="https://www.kernel.org/" target="_blank">kernel.org</a> (wydania stabilne/LTS z <code>releases.json</code>, oraz aktualne jądro RC z gałęzi <code>mainline</code>, jeśli akurat trwa) /
-  <a href="https://endoflife.date/linux" target="_blank">endoflife.date</a> (pobierane na żywo przy każdym otwarciu strony).
+  Dane o wydaniach jąder: <a href="https://endoflife.date/linux" target="_blank">endoflife.date</a> (wydania stabilne/LTS) oraz najnowszy tag z oficjalnego mirrora
+  <a href="https://github.com/torvalds/linux" target="_blank" rel="noopener">torvalds/linux</a> na GitHubie, pobierany przez <a href="https://www.jsdelivr.com/" target="_blank" rel="noopener">jsdelivr</a>
+  (jedyne źródło danych o jądrze RC z gałęzi <code>mainline</code>, do którego przeglądarka może się odpytać bezpośrednio — <code>kernel.org/releases.json</code>
+  nie wysyła nagłówków CORS, więc nie da się go pobrać stąd wprost). Wszystko pobierane na żywo przy każdym otwarciu strony.
   Nazwy opcji <code>CONFIG_*</code> zweryfikowane względem Linux Kernel Driver Database i dokumentacji jądra — mimo to zawsze zweryfikuj
   je w <code>make menuconfig</code> na docelowej wersji, bo pojedyncze nazwy symboli potrafią się zmieniać między wydaniami.
   Ostatnia aktualizacja treści strony: 2026-08-19.
@@ -692,30 +694,35 @@ function fetchWithTimeout(url, ms){
 }
 
 async function fetchMainlineRC(){
-  // Osobne, niezależne źródło: kernel.org/releases.json publikuje m.in. wpis
-  // o monikerze "mainline" — to bieżąca gałąź rozwojowa. Ma sens dla nas tylko
-  // wtedy, gdy akurat trwa faza -rcN (czyli między "kernel.org ogłasza kolejne RC"
-  // a finalnym wydaniem) — poza tym oknem mainline bywa albo pusty, albo pokazuje
-  // wersję, która i tak już jest na liście stabilnych. Awaria tego fetcha NIGDY
-  // nie powinna wywrócić reszty strony — stąd osobny try/catch zwracający null.
+  // UWAGA (znalezione dopiero po realnym wdrożeniu na żywo, nie w testach lokalnych):
+  // kernel.org/releases.json NIE wysyła nagłówka Access-Control-Allow-Origin, więc
+  // przeglądarka blokuje ten fetch z dowolnej domeny innej niż kernel.org — w praniu
+  // request zawsze kończy się błędem CORS, cicho łapanym przez catch niżej, i RC
+  // nigdy się nie pojawiało, mimo że dane były poprawnie sparsowane. Zamiast tego
+  // korzystamy z listy tagów oficjalnego mirrora torvalds/linux na GitHubie, udostępnianej
+  // przez jsdelivr (data.jsdelivr.com) — to CDN z jawnie ustawionym Access-Control-Allow-Origin: *,
+  // więc działa z przeglądarki bez żadnego proxy. Najnowszy tag w tej liście odpowiada
+  // dokładnie temu, co pokazuje kernel.org jako "mainline" (zweryfikowane ręcznie).
   try{
-    const res = await fetchWithTimeout('https://www.kernel.org/releases.json', 7000);
+    const res = await fetchWithTimeout('https://data.jsdelivr.com/v1/packages/gh/torvalds/linux', 7000);
     if(!res.ok) throw new Error('HTTP '+res.status);
     const json = await res.json();
-    const rows = json.releases || [];
-    const mainline = rows.find(r=>r.moniker==='mainline');
-    if(!mainline || !mainline.version) return null;
-    const version = String(mainline.version);
-    if(!/-?rc\d+/i.test(version)) return null; // mainline aktualnie nie jest w fazie RC
-    const releaseDate = (mainline.released && mainline.released.isodate) || new Date().toISOString().slice(0,10);
+    const versions = (json.versions || []).map(v=>v.version);
+    const top = versions[0];
+    if(!top || !/-?rc\d+/i.test(top)) return null; // aktualnie żadne RC nie jest w toku
+    // jsdelivr nie podaje daty wydania taga — dokładna data nie jest tu krytyczna
+    // (RC i tak zawsze ląduje na szczycie listy jako najświeższe), więc bierzemy datę
+    // bieżącego załadowania strony jako przybliżenie i jasno to opisujemy w UI.
+    const releaseDate = new Date().toISOString().slice(0,10);
     return {
-      cycle: version,
+      cycle: top,
       releaseDate: releaseDate,
       eol: false,
       lts: false,
-      latest: version,
+      latest: top,
       latestReleaseDate: releaseDate,
       rc: true,
+      rcDateApprox: true,
     };
   }catch(e){
     return null;
@@ -1700,7 +1707,7 @@ function renderLaptopTab(laptopId){
     : 'Dane pobrane na żywo z endoflife.date/kernel.org o '+(fetchTimestamp?fetchTimestamp.toLocaleString('pl-PL'):'')+'. Lista obejmuje wydania z ostatnich 2 lat (dziś: '+new Date().toLocaleDateString('pl-PL')+').';
   const rcEntry = kernels.find(k=>k.rc);
   metaEl.innerHTML = src + (latest?'<br>Najnowsze stabilne: <b>'+latest.cycle+'</b> ('+latest.releaseDate+'). Obecne LTS: <b>'+(lts?lts.cycle:'?')+'</b> ('+(lts?lts.releaseDate:'')+').':'')
-    + (rcEntry?'<br>Aktualne jądro RC (rozwojowe, kernel.org/mainline): <b>'+rcEntry.cycle+'</b> ('+rcEntry.releaseDate+') — bez paczki w Gentoo, tylko do testów.':'');
+    + (rcEntry?'<br>Aktualne jądro RC (rozwojowe, gałąź mainline): <b>'+rcEntry.cycle+'</b> (data wykrycia: '+rcEntry.releaseDate+', przybliżona — dokładnej daty wydania taga nie podaje źródło) — bez paczki w Gentoo, tylko do testów.':'');
 }
 
 function onKernelChange(laptopId, value){
