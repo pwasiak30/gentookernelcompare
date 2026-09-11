@@ -273,11 +273,15 @@
     <button class="tab-btn active" data-tab="tuf">💻 Laptop 1 — ASUS TUF Gaming F15</button>
     <button class="tab-btn" data-tab="x202ep">💻 Laptop 2 — ASUS VivoBook X202EP</button>
     <button class="tab-btn" data-tab="update">🔄 Ściągawka: aktualizacja systemu</button>
+    <button class="tab-btn" data-tab="cleanup">🧹 Ściągawka: czyszczenie Gentoo</button>
+    <button class="tab-btn" data-tab="newkernel">🆕 Ściągawka: pojawił się nowy kernel</button>
   </div>
 
   <div id="tab-tuf" class="tab-panel active"></div>
   <div id="tab-x202ep" class="tab-panel"></div>
   <div id="tab-update" class="tab-panel"></div>
+  <div id="tab-cleanup" class="tab-panel"></div>
+  <div id="tab-newkernel" class="tab-panel"></div>
 
 </div>
 
@@ -1701,6 +1705,170 @@ function renderUpdateTab(){
   container.innerHTML = html;
 }
 
+/* ======================= ZAKŁADKA: CZYSZCZENIE GENTOO ======================= */
+/* Osobna ściągawka poświęcona wyłącznie odzyskiwaniu miejsca na dysku — numeracja Krok 1..N
+   jest niezależna od renderUpdateTab() i dualKernelGuideHtml() (ten sam wzorzec co w innych zakładkach:
+   ta sama funkcja step() jest reużywana z osobnym licznikiem w każdej zakładce/kontenerze DOM). */
+function renderCleanupTab(){
+  const container = document.getElementById('tab-cleanup');
+  let html = '';
+
+  html += '<div class="card"><h2>Ściągawka: czyszczenie Gentoo z zajętego miejsca na dysku</h2>';
+  html += '<p style="color:var(--muted);font-size:.87rem;margin-top:-4px">Gentoo, w przeciwieństwie do dystrybucji binarnych, kompiluje pakiety u Ciebie — a to zostawia po sobie sporo śmieci: stare paczki źródłowe, stare zbudowane binarki, przerwane kompilacje i całe drzewa źródeł jądra (potrafią ważyć <b>kilka–kilkanaście GB każde</b>). Ta zakładka to osobny checklist tylko do sprzątania, żeby nie szukać tego rozproszone po Fazie IV Ściągawki aktualizacji.</p>';
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🔍 Krok 0 — zanim zaczniesz: zobacz, co faktycznie zajmuje miejsce</h2>';
+  html += step(1, 'Sprawdź ile masz wolnego miejsca i gdzie leżą największe katalogi',
+    'df -h /\nsudo du -sh /usr/src/* 2>/dev/null | sort -rh | head -10\nsudo du -sh /var/cache/distfiles /var/cache/binpkgs 2>/dev/null',
+    [
+      '<code>df -h /</code> — <code>df</code> (disk free) pokazuje zajętość partycji; <code>-h</code> (human-readable) wypisuje rozmiary w GB/MB zamiast bloków. Zwróć uwagę na kolumnę „Use%" — dopiero mając punkt odniesienia „przed" wiesz, ile realnie odzyskałeś po każdym kroku niżej.',
+      '<code>sudo du -sh /usr/src/* 2>/dev/null | sort -rh | head -10</code> — <code>du</code> (disk usage) liczy rozmiar katalogów; <code>-s</code> (summarize) podaje jedną sumę na katalog zamiast rozpisywać każdy plik; <code>-h</code> jak wyżej. <code>sudo</code> jest tu konieczne — katalog <code>/usr/src</code> należy do <code>root</code>, zwykły użytkownik dostanie <code>Permission denied</code> przy próbie wejścia w niektóre podkatalogi. <code>2&gt;/dev/null</code> wycisza te błędy zamiast zaśmiecać wynik. <code>sort -rh</code> sortuje malejąco (<code>-r</code>) z rozumieniem jednostek human-readable (<code>-h</code>, np. „9,8G" > „512M"). <code>head -10</code> pokazuje tylko 10 największych pozycji.',
+      'Typowo to właśnie tu, w <code>/usr/src/linux-&lt;wersja&gt;</code>, chowają się największe pożeracze miejsca — każde ręcznie skompilowane drzewo źródeł jądra (Krok 12/13 w Ściągawce aktualizacji) potrafi po kompilacji ważyć 9–10 GB, dopóki nie zrobisz na nim <code>make clean</code> (Krok 2 niżej).',
+      'Jeśli wolisz interaktywny podgląd zamiast czytania listy — zainstaluj <code>app-portage/ncdu</code> (mały pakiet w C, kompilacja liczona w sekundach, bardzo wysoka opłacalność; ma też gotową binarkę, jeśli akurat trzymasz <code>getbinpkg</code> włączone — patrz Krok 29 w Ściągawce aktualizacji) i uruchom <code>ncdu /</code> — strzałki + Enter, żeby przechodzić po katalogach, i widać rozmiar każdego z osobna.'
+    ],
+    'Ten krok niczego nie zmienia w systemie — to wyłącznie punkt odniesienia. Zapisz sobie wynik <code>df -h /</code>, żeby po kolejnych krokach zobaczyć realny efekt.');
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🐧 Kompilacja jądra — największy pojedynczy pożeracz miejsca</h2>';
+  html += step(2, 'Wyczyść artefakty kompilacji w drzewach źródeł jądra, których już nie potrzebujesz',
+    'cd /usr/src/linux-<stara-wersja>\nsudo make clean\ncd /usr/src/linux\nsudo make clean',
+    [
+      '<b>Musisz być zalogowany jako <code>root</code> albo dopisać <code>sudo</code> przed <code>make</code>.</b> Realny błąd, który na to wskazuje: uruchamiasz <code>make clean</code> jako zwykły użytkownik (prompt <code>s3in610@gentoo</code> zamiast <code>gentoo ~ #</code>) i polecenie kończy się serią <code>Permission denied</code> na każdym pliku — katalog <code>/usr/src</code> jest własnością <code>root</code>, zwykły user nie ma prawa niczego w nim skasować ani nadpisać, więc <code>make clean</code> faktycznie nic nie czyści, mimo że nie zawsze jasno o tym informuje.',
+      '<code>make clean</code> — usuwa wszystkie pliki pośrednie z kompilacji (<code>.o</code>, <code>.ko</code> tymczasowe, cache zależności) z <b>bieżącego katalogu źródeł</b>, zostawiając samo drzewo źródłowe (<code>.c</code>/<code>.h</code>) i Twój zapisany <code>.config</code> nietknięte. To właśnie te pliki pośrednie odpowiadają za większość wagi katalogu po kompilacji — realny przykład: katalog <code>9,8 GB</code> przed, <code>1,8 GB</code> po <code>make clean</code> (odzyskane ok. 8 GB z jednego drzewa).',
+      'Zrób to <b>w każdym katalogu <code>/usr/src/linux-*</code> osobno</b> — <code>make clean</code> działa tylko na katalog, w którym akurat jesteś (<code>cd</code> przed każdym wywołaniem), nie czyści rekurencyjnie wszystkich wersji naraz.',
+      '<b>Nawyk na przyszłość, żeby nie zbierało się to na zapas:</b> od razu po zakończonej sekwencji <code>make -jN && make modules_install && make install</code> (Krok 13 w Ściągawce aktualizacji) dopisz na końcu <code>&& sudo make clean</code> — jedno polecenie, zero pamiętania później.'
+    ],
+    'Nie rób tego na drzewie źródeł <b>aktualnie uruchomionego</b> jądra tuż przed restartem — <code>make clean</code> samych plików <code>.config</code> i źródeł nie rusza, więc jest bezpieczne, ale do czasu potwierdzenia, że nowe jądro poprawnie wystartowało, zostaw sobie margines i nie kasuj jeszcze całego katalogu (patrz Krok 3).');
+  html += step(3, 'Usuń całe drzewo źródeł starego jądra, którego już na pewno nie potrzebujesz',
+    'sudo rm -rf /usr/src/linux-<stara-wersja>',
+    [
+      '<b>Rób to dopiero, gdy jesteś pewien, że nie wrócisz do tej wersji</b> — w przeciwieństwie do <code>make clean</code> (Krok 2), to kasuje drzewo źródłowe <b>całkowicie i nieodwracalnie</b>, łącznie z Twoim zapisanym <code>.config</code>. Jeśli jądro z tego katalogu wciąż jest wybierane w GRUB-ie i z niego korzystasz, zostaw je.',
+      'Znowu: <code>sudo</code> jest konieczne z tego samego powodu co w Kroku 2 — bez niego dostaniesz serię <code>Permission denied</code>, a katalog w praktyce nie zostanie usunięty (próba się nie powiedzie na każdym pliku z osobna).',
+      'Typowy, bezpieczny kandydat do usunięcia: stara wersja <code>-rc</code> (kandydat do wydania), którą zastąpiła nowsza wersja <code>-rc</code> lub stabilne wydanie — np. <code>/usr/src/linux-7.3-rc1</code> po tym, jak przesiadłeś się na <code>7.3-rc2</code> (patrz Krok 37 w Ściągawce aktualizacji o gałęzi <code>git-sources</code>/RC). Realny efekt jednego takiego katalogu: <b>9,8 GB odzyskane w całości</b>.',
+      'Zanim skasujesz, upewnij się, że to <b>nie</b> jest katalog, na który wskazuje aktualnie dowiązanie <code>/usr/src/linux</code> (sprawdź <code>eselect kernel list</code> — gwiazdka <code>*</code> pokazuje, która pozycja jest aktywna) — usunięcie aktywnego dowiązania zepsuje kompilację innych pakietów zależnych od nagłówków jądra (patrz też Krok 25 w Ściągawce aktualizacji, „Unable to find kernel sources").'
+    ],
+    'Po usunięciu sprawdź efekt tym samym poleceniem z Kroku 0: <code>df -h /</code> — porównaj z zapisanym wynikiem sprzed czyszczenia.');
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📦 Portage — stare paczki i pliki źródłowe</h2>';
+  html += step(4, 'Wyczyść stare, nieużywane pliki źródłowe pobrane przez Portage (distfiles)',
+    'sudo emerge --depclean\nsudo eclean-dist --deep',
+    [
+      '<b>Skąd wziąć <code>eclean-dist</code>, jeśli go nie masz:</b> to część pakietu <code>app-portage/gentoolkit</code> — mały zestaw skryptów pomocniczych w Pythonie, kompilacja/instalacja liczona w sekundach, bardzo wysoka opłacalność, praktycznie zawsze warto go mieć. Instalacja: <code>sudo emerge app-portage/gentoolkit</code> (dostępna też gotowa binarka, jeśli masz włączone <code>getbinpkg</code> — patrz Krok 29 w Ściągawce aktualizacji).',
+      '<code>sudo emerge --depclean</code> — najpierw usuń osierocone pakiety (te, które zostały zainstalowane wyłącznie jako czyjaś zależność, a teraz nikt ich już nie potrzebuje). Rób to <b>przed</b> <code>eclean-dist</code>, bo dopiero po realnym odinstalowaniu pakietu jego plik źródłowy staje się kandydatem do wyczyszczenia niżej. Bez <code>--pretend</code> to już realnie usuwa — jeśli chcesz najpierw zobaczyć podgląd, dopisz <code>--pretend</code> tak jak w Kroku 14 Ściągawki aktualizacji.',
+      '<code>eclean-dist</code> — czyści katalog <code>/var/cache/distfiles</code> z plików źródłowych (tarballi <code>.tar.xz</code> itp.) pobranych podczas kompilacji pakietów, których <b>starsze wersje</b> nie są już zainstalowane w systemie. <code>--deep</code> dodatkowo usuwa pliki dla pakietów, które w ogóle nie są już zainstalowane (nie tylko starsze wersje) — bezpieczne, bo Portage i tak pobierze plik ponownie, gdyby kiedyś znów był potrzebny.',
+      'Domyślnie <code>eclean-dist</code> zawsze zostawia najnowszy pobrany plik dla każdego aktualnie zainstalowanego pakietu (na wypadek konieczności przebudowy bez ponownego pobierania) — nie usunie niczego, co mogłoby Ci realnie przeszkodzić.'
+    ],
+    'Ten katalog rośnie po cichu przy każdej kompilacji — u kogoś, kto trzyma <code>~amd64</code> i aktualizuje się często (Krok 37 Ściągawki aktualizacji), potrafi po kilku miesiącach zająć kilka–kilkanaście GB.');
+  html += step(5, 'Wyczyść stare, zbudowane paczki binarne',
+    'sudo eclean-pkg --deep',
+    [
+      '<code>eclean-pkg</code> (ten sam pakiet <code>gentoolkit</code> co wyżej) czyści katalog <code>/var/cache/binpkgs</code> — gotowe, zbudowane paczki <code>.gpkg.tar</code>/<code>.tbz2</code> zostawione przez Portage przy każdej kompilacji (funkcja <code>buildpkg</code>/<code>FEATURES="buildpkg"</code>, jeśli masz włączoną — u wielu domyślnie jest, na wypadek potrzeby szybkiej reinstalacji bez ponownej kompilacji).',
+      'Ten katalog jest dla Ciebie szczególnie istotny, jeśli korzystasz z binarek dla Node.js czy dużych pakietów (Krok 27–31 Ściągawki aktualizacji) — każda pobrana lub zbudowana binarka zostaje tu zarchiwizowana, a przy częstych aktualizacjach na <code>~amd64</code> stare wersje potrafią się mnożyć.',
+      '<code>--deep</code> — jak wyżej, usuwa też paczki dla pakietów już całkowicie odinstalowanych, nie tylko przestarzałe wersje wciąż zainstalowanych.'
+    ],
+    'Jeśli świadomie trzymasz binarny cache jako kopię zapasową na wypadek awarii sieci — pomiń ten krok albo uruchamiaj rzadziej niż <code>eclean-dist</code>.');
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🗑️ Pozostałe źródła zajętego miejsca</h2>';
+  html += step(6, 'Sprawdź i wyczyść pozostałości po przerwanych kompilacjach',
+    'sudo ls -la /var/tmp/portage\nsudo rm -rf /var/tmp/portage/*',
+    [
+      'Gdy kompilacja pakietu zostanie przerwana w połowie (zanik prądu, zamknięty terminal bez <code>tmux</code>/<code>screen</code> — patrz Krok 8/9 Ściągawki aktualizacji), katalog roboczy w <code>/var/tmp/portage/&lt;kategoria&gt;/&lt;pakiet&gt;-&lt;wersja&gt;</code> zwykle zostaje na dysku, nawet jeśli sam <code>emerge</code> przy kolejnym uruchomieniu wznowi pracę i go dokończy.',
+      '<b>Usuwaj to tylko, gdy żadna kompilacja aktualnie nie jest w toku</b> (sprawdź <code>ps aux | grep emerge</code> albo po prostu czy masz teraz uruchomiony <code>emerge</code> w innym oknie/sesji <code>tmux</code>) — skasowanie katalogu roboczego trwającej kompilacji zepsuje ją w trakcie.',
+      'Największe, długo zalegające resztki to zwykle po dużych pakietach z Fazy VI Ściągawki aktualizacji: LLVM, GCC, Rust, <code>qtwebengine</code>, Chromium/Firefox — potrafią to być pojedyncze katalogi po kilka GB.'
+    ],
+    'To najmniej ryzykowny z kroków czyszczenia jądra/kompilacji — te pliki i tak są tylko tymczasowe, Portage odtworzy je od zera przy następnej kompilacji danego pakietu.');
+  html += step(7, 'Wyczyść osierocone runtime\'y Flatpaka (jeśli go używasz)',
+    'flatpak uninstall --unused',
+    [
+      'Identyczne polecenie co Krok 39 w Ściągawce aktualizacji — powtórzone tutaj, żeby ta zakładka była kompletnym checklistem samego sprzątania, bez przeskakiwania do innej zakładki. Zobacz tam pełne wyjaśnienie kolumn i komunikatów „niewspierane"/„delisted".',
+      'Stare runtime\'y i sterowniki graficzne (zwłaszcza nvidia, potrafiący ważyć 300+ MB na samą jedną wersję) to częsty, niedoceniany pożeracz miejsca u kogoś, kto oprócz Portage używa też Flathuba.'
+    ],
+    'Pomiń ten krok całkowicie, jeśli nie masz zainstalowanego <code>app-containers/flatpak</code>.');
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+/* ======================= ZAKŁADKA: POJAWIŁ SIĘ NOWY KERNEL ======================= */
+/* Osobna ściągawka: co zrobić, gdy na packages.gentoo.org (gentoo-sources lub git-sources)
+   pojawia się nowsza wersja niż ta, na której aktualnie stoisz. Numeracja Krok 1..N niezależna
+   od pozostałych zakładek (ten sam wzorzec co w renderCleanupTab() i dualKernelGuideHtml()). */
+function renderNewKernelTab(){
+  const container = document.getElementById('tab-newkernel');
+  let html = '';
+
+  html += '<div class="card"><h2>Ściągawka: pojawił się nowy kernel — co teraz?</h2>';
+  html += '<p style="color:var(--muted);font-size:.87rem;margin-top:-4px">Dotyczy sytuacji, gdy zaglądasz na stronę pakietu i widzisz tam nowszą wersję, niż ta, którą masz zainstalowaną: '
+    + '<a href="https://packages.gentoo.org/packages/sys-kernel/gentoo-sources" target="_blank" rel="noopener">packages.gentoo.org/packages/sys-kernel/gentoo-sources</a> '
+    + 'albo <a href="https://packages.gentoo.org/packages/sys-kernel/git-sources" target="_blank" rel="noopener">packages.gentoo.org/packages/sys-kernel/git-sources</a>. '
+    + 'To osobny checklist od zwykłego <code>emerge -avuDN @world</code> (Ściągawka aktualizacji) — bo jądro, w przeciwieństwie do niemal każdego innego pakietu, <b>nie wgrywa się samo</b>, jeśli używasz ręcznie kompilowanych źródeł (patrz Krok 12 w Ściągawce aktualizacji).</p>';
+  html += '</div>';
+
+  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🔀 Najpierw wybierz właściwą stronę pakietu — to nie jest ten sam pakiet</h2>';
+  html += '<div class="note" style="font-size:.85rem">'
+    + '<b><a href="https://packages.gentoo.org/packages/sys-kernel/gentoo-sources" target="_blank" rel="noopener">sys-kernel/gentoo-sources</a></b> — oficjalne, stabilne (albo <code>~amd64</code> testing, zależnie od Twoich <code>ACCEPT_KEYWORDS</code>) źródła jądra <b>z łatkami Gentoo</b> (m.in. wsparcie dla niektórych sterowników i funkcji spoza czystego jądra Linusa). To źródło, z którego korzysta Wariant B w Kroku 13 Ściągawki aktualizacji — kompilowane ręcznie, ale oparte o w miarę przetestowaną, konkretną wersję wydania.<br><br>'
+    + '<b><a href="https://packages.gentoo.org/packages/sys-kernel/git-sources" target="_blank" rel="noopener">sys-kernel/git-sources</a></b> — „żywy" (live/git) mirror bieżącej gałęzi deweloperskiej Linusa Torvaldsa, bez żadnych łatek Gentoo, aktualizowany dużo częściej. Obejmuje też wersje <b><code>-rcN</code></b> (kandydat do wydania, jeszcze przed oficjalną premierą, np. <code>7.3.0-rc2</code>) — to najświeższe możliwe źródło jądra w ogóle, ale też najmniej przetestowane. Patrz Krok 37 w Ściągawce aktualizacji po pełny kontekst „chcę mieć zawsze najnowsze" i ostrzeżenie o sterowniku NVIDIA.<br><br>'
+    + 'Obie strony pokazują na górze aktualną najnowszą wersję w drzewie oraz — rozwijając „Version information" — pełną listę wersji z ich statusem <code>~amd64</code>/<code>amd64</code> (stable) per architektura.</div>';
+
+  html += step(1, 'Sprawdź, którą wersję masz teraz i czy w ogóle warto się aktualizować',
+    'eselect kernel list\nuname -r',
+    [
+      '<code>eselect kernel list</code> pokazuje wszystkie zainstalowane u Ciebie drzewa źródeł z numerem porządkowym, np. <code>[1] linux-7.2.4-gentoo</code>, <code>[2] linux-7.3.0-rc2-gentoo</code> — gwiazdka <code>*</code> oznacza, na które z nich obecnie wskazuje dowiązanie <code>/usr/src/linux</code> (to inna rzecz niż jądro faktycznie uruchomione — to mówi <code>uname -r</code>).',
+      'Porównaj najwyższy numer z listy z tym, co pokazuje strona pakietu (link wyżej) — jeśli różnica to tylko poprawka bezpieczeństwa/stabilności w tej samej serii (np. <code>7.2.3</code> → <code>7.2.4</code>), warto zaktualizować względnie od razu. Jeśli to skok całej serii (np. <code>7.2</code> → <code>7.3</code>) albo świeży <code>-rcN</code> na <code>git-sources</code>, przeczytaj najpierw ostrzeżenie o NVIDIA w Kroku 37 Ściągawki aktualizacji, zanim się zdecydujesz.'
+    ],
+    'Ten krok tylko sprawdza stan — nic jeszcze nie zmienia w systemie.');
+
+  html += step(2, 'Pobierz nowszą wersję źródeł do systemu',
+    'sudo eix-sync\nsudo emerge -av sys-kernel/gentoo-sources\n# albo, dla git-sources:\nsudo emerge -av sys-kernel/git-sources',
+    [
+      '<code>sudo eix-sync</code> (albo <code>sudo emerge --sync</code>, jeśli nie masz <code>eix</code> — patrz Krok 1 Ściągawki aktualizacji) — bez tego Portage może wciąż pokazywać starą listę dostępnych wersji, nawet jeśli na stronie pakietu widać już nowszą.',
+      '<b>To zawsze kompilacja, nigdy binarka</b> — w przeciwieństwie do zwykłych pakietów aplikacji, źródła jądra (<code>gentoo-sources</code>/<code>git-sources</code>) to dosłownie pliki źródłowe <code>.c</code>/<code>.h</code> do skonfigurowania i zbudowania samodzielnie; Gentoo nie dystrybuuje gotowych binarek dla tego pakietu (to inna sytuacja niż <code>sys-kernel/gentoo-kernel-bin</code>, patrz Krok 12 Ściągawki aktualizacji, który jest odrębnym pakietem robiącym to automatycznie).',
+      '<code>-av</code> — <code>-a</code> (ask) pyta o potwierdzenie przed instalacją, <code>-v</code> (verbose) pokazuje szczegóły (flagi USE, slot). Samo pobranie/rozpakowanie źródeł do <code>/usr/src/linux-&lt;nowa-wersja&gt;</code> trwa sekundy — to nie jest jeszcze kompilacja jądra, tylko instalacja pakietu ze źródłami do skompilowania ręcznie w kolejnym kroku.',
+      'Jeśli chcesz <code>git-sources</code>, a jeszcze go nigdy nie miałeś zainstalowanego, może być potrzebne dopisanie go do <code>ACCEPT_KEYWORDS</code> w <code>/etc/portage/package.accept_keywords</code> (jako pakiet live/<code>-9999</code>-podobny bywa oznaczony <code>**</code> zamiast zwykłego <code>~amd64</code>) — jeśli <code>emerge</code> odmówi z komunikatem o maskowaniu, zastosuj <code>--autounmask-write</code> tak jak przy zwykłych konfliktach flag USE w Kroku 7 Ściągawki aktualizacji.'
+    ],
+    'Po tym kroku masz nowe źródła na dysku, ale uruchomione jądro się jeszcze nie zmieniło — to załatwia dopiero Krok 3.');
+
+  html += step(3, 'Ustaw nowe źródła jako aktywne i przygotuj konfigurację',
+    'sudo eselect kernel list\nsudo eselect kernel set <numer-z-listy>\ncd /usr/src/linux\nsudo cp /etc/kernels/config-$(uname -r)-backup .config\nsudo make olddefconfig',
+    [
+      '<code>eselect kernel set &lt;numer&gt;</code> — przełącza dowiązanie <code>/usr/src/linux</code> na katalog źródeł, z którego kolejne <code>make</code> będzie faktycznie korzystać. Bez podania numeru z listy komenda zwróci błąd „You didn\'t tell me what to set the symlink to" — zawsze najpierw <code>eselect kernel list</code>, żeby odczytać właściwy numer.',
+      '<code>cp .../config-...-backup .config</code> — przywraca Twoją wcześniej zapisaną konfigurację zamiast zaczynać <code>menuconfig</code> od zera (pełny opis wariantów awaryjnych — <code>zcat /proc/config.gz</code> albo <code>cp /boot/config-$(uname -r)</code> — w Kroku 13 Ściągawki aktualizacji, identyczna sytuacja).',
+      '<code>make olddefconfig</code> — dopasowuje przywróconą konfigurację do nowej wersji źródeł automatycznie, przypisując wartości domyślne każdej nowej opcji jądra, której poprzednia wersja jeszcze nie miała. Jeśli wiesz, że nowa wersja wprowadza opcję, którą chcesz świadomie włączyć (tak jak np. moduły netfiltera do konkretnego zastosowania) — po <code>olddefconfig</code> możesz jeszcze doprecyzować przez <code>sudo make menuconfig</code> przed kompilacją.'
+    ],
+    'Jeśli przechodzisz z <code>gentoo-sources</code> na <code>git-sources</code> (albo odwrotnie) pierwszy raz — skopiowana konfiguracja z poprzedniego jądra zwykle nadal pasuje w większości, bo to ten sam mechanizm <code>Kconfig</code>; różnice to głównie nowe opcje z nowszej gałęzi rozwojowej.');
+
+  html += step(4, 'Skompiluj, zainstaluj i zaktualizuj GRUB',
+    'sudo make -j$(nproc)\nsudo make modules_install\nsudo make install\nsudo grub-mkconfig -o /boot/grub/grub.cfg',
+    [
+      '<code>-j$(nproc)</code> — <code>nproc</code> wypisuje liczbę wątków CPU dostępnych w systemie, a <code>$(...)</code> podstawia ten wynik wprost jako wartość <code>-j</code> (liczba równoległych zadań kompilacji). To wygodniejszy odpowiednik ręcznego odczytywania <code>MAKEOPTS</code> z <code>make.conf</code> (patrz Krok 13 Ściągawki aktualizacji) — obie metody dają ten sam efekt.',
+      '<code>make modules_install</code> — instaluje skompilowane moduły jądra (sterowniki jako pliki <code>.ko</code>) do <code>/lib/modules/&lt;wersja&gt;</code>.',
+      '<code>make install</code> — kopiuje sam obraz jądra do <code>/boot</code> i <b>automatycznie generuje initramfs</b> (obraz startowy z niezbędnymi sterownikami do uruchomienia systemu, zanim zamontowany zostanie główny dysk) — potwierdzisz to w logu instalacji linijkami w stylu <code>Found linux image: /boot/vmlinuz-...</code> i <code>Found initrd image: ...</code>.',
+      '<code>grub-mkconfig -o /boot/grub/grub.cfg</code> — dopisuje nową wersję jądra do menu rozruchowego GRUB, żeby w ogóle pojawiła się tam jako opcja wyboru przy starcie.'
+    ],
+    '<b>Zanim zrestartujesz:</b> upewnij się w podglądzie menu GRUB (albo po prostu ufając logowi <code>grub-mkconfig</code> wyżej), że stara, sprawdzona wersja jądra nadal jest na liście — dopóki jej ręcznie nie usuniesz (patrz zakładka „Czyszczenie Gentoo"), zawsze masz do czego wrócić, gdyby nowe jądro nie wystartowało.');
+
+  html += step(5, 'Zrestartuj i wybierz nowe jądro w GRUB',
+    'sudo reboot',
+    [
+      '<b>Jak wybrać jądro w menu GRUB przy starcie:</b> zaraz po włączeniu/restarcie komputera zobaczysz listę pozycji tekstowych — strzałkami <code>↑</code>/<code>↓</code> najedź na wpis z nazwą nowej wersji (np. <code>Gentoo GNU/Linux, with Linux 7.3.0-rc2-gentoo</code>, zwykle jedna z pierwszych pozycji na liście, bo <code>grub-mkconfig</code> sortuje od najnowszej), a następnie zatwierdź <code>Enter</code>. Jeśli menu przewinie się zbyt szybko — GRUB czeka domyślnie kilka–kilkanaście sekund (zależnie od <code>GRUB_TIMEOUT</code> w <code>/etc/default/grub</code>), naciśnięcie dowolnej strzałki w tym czasie zatrzymuje odliczanie.',
+      'Jeśli coś pójdzie nie tak i system się nie uruchomi (czarny ekran, panika jądra) — zrestartuj ponownie i tym razem wybierz strzałkami starą, sprawdzoną wersję z listy (ta, którą zostawiłeś w Kroku 4 wyżej) — wracasz do działającego systemu bez utraty danych, źródła nowego jądra zostają na dysku do dalszej diagnozy.'
+    ],
+    'Ten krok fizycznie przełącza uruchomione jądro — dopiero teraz, po restarcie, <code>uname -r</code> pokaże nową wersję (weryfikacja w Kroku 6).');
+
+  html += step(6, 'Zweryfikuj, że wszystko wystartowało na nowym jądrze poprawnie',
+    'uname -r\ndmesg | grep -i error\nlsmod',
+    [
+      '<code>uname -r</code> — musi pokazać dokładnie tę wersję, którą przed chwilą skompilowałeś (np. <code>7.3.0-rc2-gentoo</code>) — jeśli pokazuje starą, restart wybrał niewłaściwą pozycję w GRUB albo <code>grub-mkconfig</code> z Kroku 4 nie wykrył nowego wpisu (sprawdź, czy <code>/boot/vmlinuz-*</code> dla nowej wersji faktycznie istnieje).',
+      '<code>dmesg | grep -i error</code> — <code>dmesg</code> wypisuje log jądra od startu systemu; <code>grep -i error</code> filtruje tylko linie zawierające „error" (<code>-i</code> ignoruje wielkość liter) — szybki sposób na wychwycenie sterowników, które się nie załadowały.',
+      '<code>lsmod</code> — lista aktualnie załadowanych modułów jądra; sprawdź nią konkretny moduł, na którym Ci zależy (np. <code>lsmod | grep nvidia</code>) — jeśli korzystasz z karty NVIDIA i przeszedłeś na świeży <code>-rcN</code> z <code>git-sources</code>, moduł <code>nvidia</code>/<code>nvidia_drm</code> może się <b>nie załadować</b> (sterownik jeszcze nie ma wsparcia dla tak nowego jądra) — to nie błąd Twojej konfiguracji, tylko oczekiwana luka opisana w Kroku 37 Ściągawki aktualizacji. Sam system mimo to normalnie działa (na Intel/nouveau albo bez akceleracji 3D).'
+    ],
+    'Dopiero po tej weryfikacji — jeśli wszystko działa poprawnie i minęło wystarczająco dużo czasu, żebyś był pewien, że nie musisz wracać — przejdź do zakładki „Czyszczenie Gentoo", żeby zwolnić miejsce po starym drzewie źródeł.');
+
+  container.innerHTML = html;
+}
+
 /* ======================= GŁÓWNY RENDER ZAKŁADKI ======================= */
 
 function renderLaptopTab(laptopId){
@@ -1768,6 +1936,8 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   renderLaptopTab('tuf');
   renderLaptopTab('x202ep');
   renderUpdateTab();
+  renderCleanupTab();
+  renderNewKernelTab();
 })();
 </script>
 
