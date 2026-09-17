@@ -102,8 +102,14 @@
   .badge.now{background:var(--accent-bg); color:var(--accent-strong); border-color:var(--accent-border)}
   .badge.latest{background:var(--latest-bg); color:var(--latest); border-color:var(--latest-border)}
   .badge.rc{background:var(--warn-bg); color:var(--warn); border-color:color-mix(in srgb, var(--amber) 45%, var(--card) 55%)}
-  .component{border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin-bottom:12px; background:var(--bg2)}
+  .component{border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin-bottom:12px; background:var(--bg2); scroll-margin-top:78px}
   .component h4{margin:0 0 6px; font-size:.93rem; display:flex; align-items:center; gap:8px}
+  .card h2[id]{scroll-margin-top:78px}
+  .jump-nav{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; padding:12px 14px; border:1px solid var(--border); border-radius:6px; background:var(--bg2); position:sticky; top:56px; z-index:50}
+  .jump-nav label{font-size:.85rem; font-weight:600; white-space:nowrap}
+  .jump-nav select{flex:1; min-width:220px; font-size:.85rem; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text)}
+  @keyframes jumpFlash{0%{box-shadow:0 0 0 3px var(--accent-strong)}100%{box-shadow:0 0 0 0 transparent}}
+  .jump-highlight{animation:jumpFlash 1.4s ease-out}
   .component .status{font-size:.85rem; margin-bottom:8px}
   .component .verify{font-size:.75rem; color:var(--muted); font-family:var(--mono); background:var(--bg3); border:1px solid var(--border); padding:6px 9px; border-radius:6px; margin-top:6px; display:inline-block}
   .diffgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
@@ -1044,7 +1050,7 @@ function runMakeopts(laptopId){
 /* ======================= RENDEROWANIE: DWA JĄDRA NA RAZ (KROK PO KROKU) ======================= */
 
 function step(n, title, cmd, bullets, note){
-  let html = '<div class="component"><h4>Krok '+n+': '+title+'</h4>';
+  let html = '<div class="component" id="krok-'+(window.stepScope||'x')+'-'+n+'"><h4>Krok '+n+': '+title+'</h4>';
   if(cmd) html += '<pre>'+cmd+'</pre>';
   if(bullets && bullets.length){
     html += '<ul style="font-size:.85rem;margin:8px 0 0;padding-left:20px">'+bullets.map(b=>'<li style="margin-bottom:5px">'+b+'</li>').join('')+'</ul>';
@@ -1055,6 +1061,7 @@ function step(n, title, cmd, bullets, note){
 }
 
 function dualKernelGuideHtml(laptop){
+  window.stepScope = 'dual-'+laptop.id;
   const c = laptop.compile;
   const r = calcMakeopts(c.threads, c.ramGB);
   const isTuf = laptop.id === 'tuf';
@@ -1294,9 +1301,96 @@ function copyCheckScript(btn){
 
 /* ======================= RENDEROWANIE: ŚCIĄGAWKA AKTUALIZACJI SYSTEMU ======================= */
 
+const UPDATE_TAB_OUTLINE = [
+  { id:'faza-update-1', label:'📋 Faza I — zanim zaczniesz aktualizację', steps:[
+    [1,'Zsynchronizuj drzewo Portage'],
+    [2,'Jeśli Portage o to poprosi: zaktualizuj najpierw samo Portage'],
+    [3,'Przeczytaj oficjalne komunikaty (news) od deweloperów Gentoo'],
+    [4,'Sprawdź wolne miejsce na dysku'],
+    [5,'Zobacz podgląd tego, co się zmieni — bez instalowania czegokolwiek']
+  ]},
+  { id:'faza-update-2', label:'🚀 Faza II — jak aktualizować', steps:[
+    [6,'Uruchom właściwą aktualizację'],
+    [7,'Jeśli Portage prosi o rozwiązanie konfliktu flag USE (opcjonalnie)'],
+    [8,'Jeśli aktualizacja się przerwie (zanik prądu, zawieszenie się czegoś, albo zamknięty terminal)'],
+    [9,'Zabezpiecz się na przyszłość: uruchamiaj długie aktualizacje w tmux/screen, nie bezpośrednio w terminalu']
+  ]},
+  { id:'faza-update-3', label:'✅ Faza III — po aktualizacji', steps:[
+    [10,'Scal zaktualizowane pliki konfiguracyjne'],
+    [11,'Napraw programy, które nadal używają starych, usuniętych bibliotek'],
+    [12,'W liście z Kroku 5/6 pojawił się nowy kernel — dokładny schemat, co dalej'],
+    [13,'Wariant B: ręcznie przebuduj główne jądro z nowych źródeł gentoo-sources, potem restart']
+  ]},
+  { id:'faza-update-4', label:'🧹 Faza IV — sprzątanie systemu', steps:[
+    [14,'Zobacz, co można bezpiecznie usunąć — najpierw tylko podgląd'],
+    [15,'Faktycznie posprzątaj'],
+    [16,'Wyczyść stare wersje jądra i pliki pobrane podczas kompilacji'],
+    [17,'Zaktualizuj menu rozruchowe GRUB']
+  ]},
+  { id:'faza-update-5', label:'🟢 Faza V — jeśli oprócz Portage używasz nvm (Node.js)', steps:[
+    [18,'Zaktualizuj Node.js do najnowszego LTS przez nvm, przenosząc swoje globalne pakiety'],
+    [19,'Jeśli na co dzień używasz powłoki Fish: „fish: Unknown command: nvm”']
+  ]},
+  { id:'faza-update-6', label:'🔧 Faza VI — typowe problemy podczas dużej aktualizacji i jak je rozwiązać', steps:[
+    [20,'Błąd „circular dependencies” przy aktualizacji GCC'],
+    [21,'Kompilacja „wisi” bardzo długo (Node.js, Firefox, GCC, LibreOffice, Chromium, KDE Plasma…)'],
+    [22,'Krok 14 (emerge --depclean --pretend) odmawia działania: dependencies could not be completely resolved'],
+    [23,'Chcesz usunąć jedną konkretną, starą wersję pakietu, a proste --unmerge jej „nie widzi”'],
+    [24,'GRUB dalej pokazuje w menu stare jądro, mimo że jego pakiet już odinstalowałeś'],
+    [25,'Błąd „Unable to find kernel sources at /usr/src/linux” przy kompilacji innych pakietów'],
+    [26,'Kompilacja „wisi” w nieskończoność na dev-qt/qtwebengine — jak zejść na paczkę binarną'],
+    [27,'Kompilacja net-libs/nodejs trwa wieczność — jak przejść na gotową paczkę binarną'],
+    [28,'Nawet z -K/getbinpkg Node.js dalej się kompiluje — bo masz włączone ~amd64'],
+    [29,'Chcesz, żeby Portage samo sięgało po binarki tam, gdzie to możliwe'],
+    [30,'Node.js mimo skonfigurowanego package.env i tak wskakuje do kompilacji'],
+    [31,'Stały schemat pracy z Node.js na binarkach'],
+    [32,'Wznów przerwaną dużą aktualizację, mieszając świadomie binarki i kompilację'],
+    [33,'Chcesz włączyć lokalną flagę USE dla jednego konkretnego pakietu'],
+    [34,'Dopisałeś nową flagę USE w package.use — jak ją realnie zastosować'],
+    [35,'Kompilacja dużego pakietu (LLVM, GCC, Rust) zostaje ubita w połowie — Killed / OOM'],
+    [36,'Jak trwale zabezpieczyć się przed OOM Killerem przy przyszłych dużych kompilacjach'],
+    [37,'Chcesz mieć zawsze jak najświeższe pakiety i jądro (testing, overlaye, git-sources)']
+  ]},
+  { id:'faza-update-7', label:'📦 Faza VII — jeśli oprócz Portage używasz Flatpaka', steps:[
+    [38,'Zaktualizuj wszystkie aplikacje i środowiska uruchomieniowe Flatpaka'],
+    [39,'Wyczyść osierocone runtime\'y i biblioteki po aktualizacji']
+  ]}
+];
+
+function updateJumpNavHtml(){
+  let opts = '<option value="">— przejdź do fazy / kroku —</option>';
+  UPDATE_TAB_OUTLINE.forEach(faza=>{
+    opts += '<option value="'+faza.id+'">➤ '+faza.label+' (początek)</option>';
+    opts += '<optgroup label="'+faza.label+'">';
+    faza.steps.forEach(([n,title])=>{
+      opts += '<option value="krok-update-'+n+'">Krok '+n+': '+title+'</option>';
+    });
+    opts += '</optgroup>';
+  });
+  return '<div class="jump-nav">'
+    + '<label for="update-jump-select">🔎 Szybki skok:</label>'
+    + '<select id="update-jump-select" onchange="jumpToUpdateAnchor(this.value); this.value=\'\';">'
+    + opts
+    + '</select></div>';
+}
+
+function jumpToUpdateAnchor(id){
+  if(!id) return;
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+  el.classList.remove('jump-highlight');
+  void el.offsetWidth;
+  el.classList.add('jump-highlight');
+  setTimeout(()=>el.classList.remove('jump-highlight'), 1500);
+}
+
 function renderUpdateTab(){
+  window.stepScope = 'update';
   const container = document.getElementById('tab-update');
   let html = '';
+
+  html += updateJumpNavHtml();
 
   html += '<div class="card"><h2>Ściągawka: jak bezpiecznie zaktualizować system Gentoo</h2>';
   html += '<p style="color:var(--muted);font-size:.87rem;margin-top:-4px">Ta zakładka nie zależy od wybranego jądra — to stały checklist, do którego możesz wracać za każdym razem, gdy robisz <code>emerge --sync</code> i aktualizację. Każde polecenie jest rozbite krok po kroku, tak jak w sekcji 6 dla obu laptopów.</p>';
@@ -1307,7 +1401,7 @@ function renderUpdateTab(){
     + 'Ta sama zasada („kompilowane = wynika z ebuildu danego pakietu, nie z globalnego przełącznika”) dotyczy każdego innego pakietu w systemie. Jedyny wyjątek, o którym warto wiedzieć na przyszłość: gdybyś kiedyś świadomie włączył pobieranie gotowych binarek dla zwykłych pakietów (funkcja <code>getbinpkg</code> / oficjalny binhost Gentoo, konfigurowana w <code>/etc/portage/binrepos.conf</code>), Portage mógłby zacząć podstawiać gotowe binarki zamiast kompilować niektóre pakiety. Domyślna instalacja Gentoo tego nie robi.</div>';
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📋 Faza I — zanim zaczniesz aktualizację</h2>';
+  html += '<div class="card"><h2 id="faza-update-1" style="border-bottom:none;padding-bottom:0">📋 Faza I — zanim zaczniesz aktualizację</h2>';
   html += step(1, 'Zsynchronizuj drzewo Portage',
     'sudo eix-sync',
     [
@@ -1352,7 +1446,7 @@ function renderUpdateTab(){
     'Warto przejrzeć wyświetloną listę: czy nie ma tam czegoś nieoczekiwanego, np. dużego pakietu, którego akurat nie planowałeś ruszać. Samo <code>sudo emerge @preserved-rebuild</code> uruchomione bez wcześniejszej pełnej aktualizacji (jak w Kroku 6) zwykle i tak pokaże „Nothing to rebuild" — to osobne polecenie od głównej aktualizacji @world, nie jej zamiennik.');
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🚀 Faza II — jak aktualizować</h2>';
+  html += '<div class="card"><h2 id="faza-update-2" style="border-bottom:none;padding-bottom:0">🚀 Faza II — jak aktualizować</h2>';
   html += step(6, 'Uruchom właściwą aktualizację',
     'sudo emerge -avuDN @world',
     [
@@ -1388,7 +1482,7 @@ function renderUpdateTab(){
     'Zasada ogólna, nie tylko dla Gentoo: każde polecenie, które może trwać dłużej niż kilka minut — duża aktualizacja <code>@world</code>, kompilacja jądra, <code>emerge -e @world</code>, duże pobieranie — warto od razu odpalać wewnątrz <code>tmux</code>/<code>screen</code>, zanim jeszcze cokolwiek pójdzie nie tak, a nie dopiero po fakcie, gdy proces już przepadł.');
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">✅ Faza III — po aktualizacji</h2>';
+  html += '<div class="card"><h2 id="faza-update-3" style="border-bottom:none;padding-bottom:0">✅ Faza III — po aktualizacji</h2>';
   html += step(10, 'Scal zaktualizowane pliki konfiguracyjne',
     'sudo etc-update',
     [
@@ -1440,7 +1534,7 @@ function renderUpdateTab(){
     'Niezależnie od Wariantu A czy B: jeśli ta konkretna aktualizacja w ogóle nie objęła żadnego z pakietów jądra (sprawdź listę z Kroku 6) — cały ten krok możesz pominąć i zrobić <code>sudo reboot</code> tylko wtedy, gdy jest w ogóle potrzebny (np. po aktualizacji glibc).');
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🧹 Faza IV — sprzątanie systemu</h2>';
+  html += '<div class="card"><h2 id="faza-update-4" style="border-bottom:none;padding-bottom:0">🧹 Faza IV — sprzątanie systemu</h2>';
   html += step(14, 'Zobacz, co można bezpiecznie usunąć — najpierw tylko podgląd',
     'sudo emerge --depclean --pretend',
     [
@@ -1470,7 +1564,7 @@ function renderUpdateTab(){
     ]);
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🟢 Faza V — jeśli oprócz Portage używasz nvm (Node.js)</h2>';
+  html += '<div class="card"><h2 id="faza-update-5" style="border-bottom:none;padding-bottom:0">🟢 Faza V — jeśli oprócz Portage używasz nvm (Node.js)</h2>';
   html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ten krok dotyczy Cię <b>tylko</b>, jeśli sam zainstalowałeś <a href="https://github.com/nvm-sh/nvm" target="_blank" rel="noopener">nvm</a> (Node Version Manager) do zarządzania Node.js — np. do pracy/nauki programowania. To narzędzie jest całkowicie osobne od Portage: nie ma z nim nic wspólnego, nie jest pakietem Gentoo i emerge o nim nie wie.</p>';
   html += step(18, 'Zaktualizuj Node.js do najnowszego LTS przez nvm, przenosząc swoje globalne pakiety',
     'nvm install --lts --reinstall-packages-from=current',
@@ -1497,7 +1591,7 @@ function renderUpdateTab(){
     'To osobny temat od reszty tej fazy — dotyczy tylko sposobu, w jaki Twoja powłoka „widzi" nvm, a nie samej aktualizacji Node.js, która przebiega identycznie jak w Kroku 17.');
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">🔧 Faza VI — typowe problemy podczas dużej aktualizacji i jak je rozwiązać</h2>';
+  html += '<div class="card"><h2 id="faza-update-6" style="border-bottom:none;padding-bottom:0">🔧 Faza VI — typowe problemy podczas dużej aktualizacji i jak je rozwiązać</h2>';
   html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ta faza to zbiór realnych sytuacji, które potrafią się przytrafić przy większej aktualizacji <code>@world</code> — nie za każdym razem, ale wystarczająco często, żeby mieć je pod ręką. Każda ma swoją przyczynę i konkretne, bezpieczne rozwiązanie, wyjaśnione krok po kroku tak samo dokładnie jak reszta tej ściągawki.</p>';
 
   html += step(20, 'Błąd „circular dependencies" przy aktualizacji GCC (kompilator „zależy sam od siebie")',
@@ -1677,7 +1771,7 @@ function renderUpdateTab(){
 
   html += '</div>';
 
-  html += '<div class="card"><h2 style="border-bottom:none;padding-bottom:0">📦 Faza VII — jeśli oprócz Portage używasz Flatpaka</h2>';
+  html += '<div class="card"><h2 id="faza-update-7" style="border-bottom:none;padding-bottom:0">📦 Faza VII — jeśli oprócz Portage używasz Flatpaka</h2>';
   html += '<p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Ten krok dotyczy Cię <b>tylko</b>, jeśli masz zainstalowane aplikacje z Flathuba (<code>sudo emerge app-containers/flatpak</code>, jeśli chcesz go w ogóle mieć w systemie). Flatpak zarządza swoimi paczkami całkowicie niezależnie od Portage — nie ma z <code>emerge</code>/<code>@world</code> nic wspólnego, nie kompiluje niczego lokalnie (paczki są gotowe, pobierane binarnie z Flathuba) i nie pojawi się w żadnym z kroków Fazy I–VI powyżej.</p>';
   html += step(38, 'Zaktualizuj wszystkie aplikacje i środowiska uruchomieniowe Flatpaka',
     'flatpak update',
@@ -1710,6 +1804,7 @@ function renderUpdateTab(){
    jest niezależna od renderUpdateTab() i dualKernelGuideHtml() (ten sam wzorzec co w innych zakładkach:
    ta sama funkcja step() jest reużywana z osobnym licznikiem w każdej zakładce/kontenerze DOM). */
 function renderCleanupTab(){
+  window.stepScope = 'cleanup';
   const container = document.getElementById('tab-cleanup');
   let html = '';
 
@@ -1796,6 +1891,7 @@ function renderCleanupTab(){
    pojawia się nowsza wersja niż ta, na której aktualnie stoisz. Numeracja Krok 1..N niezależna
    od pozostałych zakładek (ten sam wzorzec co w renderCleanupTab() i dualKernelGuideHtml()). */
 function renderNewKernelTab(){
+  window.stepScope = 'newkernel';
   const container = document.getElementById('tab-newkernel');
   let html = '';
 
